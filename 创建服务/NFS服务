@@ -1,0 +1,16 @@
+服务端
+装包:yum -y install nfs-utils
+改配置:vim /etc/exports
+/目录 *(ro)   #权限为只读
+起服务:systemctl  restart nfs-server
+	systemctl  enable nfs-server
+客户端:vim /etc/fstab
+	172.25.0.11:/abc /mnt/nsd01 nfs  defaults,_netdev 0 0
+	mount -a
+	df -h
+查看服务端的共享:showmount -e ip地址
+安全的nfs共享服务
+服务端:systemctl restart nfs-secure-server nfs-server
+	systemctl enable nfs-secure-server nfs-server
+客户端:systemctl restart nfs-secure:
+	systemctl enable nfs-secure

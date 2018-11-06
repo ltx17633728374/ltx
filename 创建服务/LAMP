@@ -1,0 +1,19 @@
+LAMP平台:
+数据库:
+	yum -y install mariadb-server mariadb php php-mysql
+配置数据库:
+	systemctl  restart mariadb
+	systemctl  enable mariadb
+	mysqladmin -u root password 'Taren1'
+论坛:
+	mysql -uroot -pTaren1
+	mysql> create database bbs;		#创建bbs数据库
+	mysql> show databases;			#查看数据库
+	mysql> grant all on bbsdb *.* to runbbs@localhost identified by 'pwd123';	
+论坛网页:
+	mkdir /root/bbs
+	unzip Discuz_X3.2_SC_UTF8.zip -d /root/bbs
+	cp -rf /root/bbs/upload/* /var/www/html/
+	cd /var/www/html/
+	chown -R apache temlate/ config/ data/ uc_client/ uc_server/
+在网页交互式安装:firefox http://127.0.0.1
