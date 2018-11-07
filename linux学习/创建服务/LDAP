@@ -1,0 +1,13 @@
+LDAP
+装包:安装sssd包,安装authconfig-gtk
+配置:选择LDAP
+      dc=example,dc=com            
+      classroom.example.com
+	加密:勾选TLS加密
+     		使用证书加密:
+    		http://classroom.example.com/pub/example-ca.crt
+       		选择LDAP密码
+		选择应用
+起服务:systemctl restart sssd
+	systemctl enable sssd
+

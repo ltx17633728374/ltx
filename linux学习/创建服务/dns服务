@@ -1,0 +1,168 @@
+dns可以解析域名,将域名解析为ip地址,默认端口53
+装包:
+	yum -y install bind
+	yum -y install bind-chroot
+改配置:
+	vim /etc/named.conf
+  options {
+    	directory 	"/var/named";  #指定地址库文件位置
+    };
+
+  zone "tedu.cn" IN {      #指定本机服务负责解析的域名
+  	type master;           #指定本机为权威DNS服务器
+  	file "tedu.cn.zone";   #指定地址库文件名称(这个文件位于/var/named/)
+   };
+建立地址库文件:
+	cd  /var/named/
+	cp -p named.localhost  tedu.cn.zone  #保持属性不变
+	vim   tedu.cn.zone 
+	tedu.cn.    NS  svr7		#dns服务器名字
+	svr7        A   192.168.4.7	#dns服务器地址
+	www         A   1.1.1.1 		#解析出来返回的ip
+重启服务:
+	systemctl restart named
+	systemctl enable named
+DNS的轮询机制:
+	vim /var/named/tedu.cn.zone
+	tedu.cn.  NS  svr7
+ 	svr7       A   192.168.4.7
+ 	www        A   192.168.4.10
+	www        A   192.168.4.20
+	www        A   192.168.4.30
+	systemctl restart named
+	每次访问这个域名都可以返回不同的ip地址
+泛域名:
+	vim /var/named/tedu.cn.zone
+	tedu.cn.  NS  svr7
+ 	svr7       A   192.168.4.7
+ 	www        A   192.168.4.10
+	www        A   192.168.4.20
+ 	www        A   192.168.4.30
+	*          A   1.2.3.4
+	tedu.cn.   A   1.2.3.4
+	可以匹配任何tedu.cn.的域名并返回1.2.3.4.
+   用造数函数来进行有规律的泛域名解析:
+	vim /var/named/tedu.cn.zone
+	tedu.cn.  NS  svr7
+ 	svr7       A   192.168.4.7
+ 	www        A   192.168.4.10
+	www        A   192.168.4.20
+ 	www        A   192.168.4.30
+	*          A   1.2.3.4
+	tedu.cn.   A   1.2.3.4
+	$GENERATE  1-50   pc$   A   192.168.20.$ #匹配1-50的电脑,返回ip为对应的1-50
+    解析记录的别名 CNAME:
+	vim  /var/named/tedu.cn.zone
+	ftp       A       4.4.4.4
+	tts       CNAME   ftp     #将ftp的解析结果赋值给tts
+    systemctl restart named
+   DNS常见的资源解析记录
+    NS    A    CNAME
+DNS子域授权
+	新建一台dns服务器,让其可以解析qq的其他域名
+   修改父域的配置,授权给子域:
+	vim /var/named/qq.com.zone 
+	qq.com.    NS   svr7
+  	bj.qq.com. NS   pc207          #qq的其他域名 
+  	svr7       A    192.168.4.7    #父域ip
+ 	pc207      A    192.168.4.207  #子域ip
+ 	www        A    2.2.2.2
+   父域本身不能解析bj.qq,授权给子域后可以解析
+递归解析:
+	vim /etc/named.conf
+	在配置文件中写入:recursion yes
+	在dns服务器碰到自己不能解析的域名时允许dns服务器去询问其他dns服务器
+迭代解析：DNS服务器与其他DNS服务器交流的过程
+让本机临时拥有解析功能:
+	vim /etc/hosts(此文件内的域名具有优先级)
+	192.168.4.110  www.sina.com   #在dns服务器不能解析新浪的情况下,本机获得解析新浪的功能
+	ping www.sina.com
+搭建缓存dns:
+     方式1:全局转发
+    – 将请求转发给指定的公共DNS(其他缓存DNS),请求递归服务
+
+   • 方式2:根域迭代
+    – 依次向根、一级、二级......域的DNS服务器迭代
+
+	全局转发	vim vim /etc/named.conf
+	options {
+  		directory       "/var/named";
+  		forwarders  {  172.40.1.10;  };  #转发给中心DNS服务器
+ 	 };
+		systemctl restart named
+分离解析:
+一旦用了分离解析,读写的文件中的zone只能在view下
+	vim /etc/named.conf
+	options {
+        directory       "/var/named";
+	};
+	acl  test { 192.168.4.207; 192.168.7.0/24; 192.168.10.1;  };  #创建一个字典
+
+	view "nsd" {
+  		match-clients {   test; };              #字典里的ip都符合第一类型
+  		zone "tedu.cn" IN {
+      	type master;
+      	file "tedu.cn.zone";
+  	 };
+ 	 	zone "qq.com" IN {
+      	type master;
+      	file "qq.com.zone";
+  	 };
+	};
+	view "other" {
+ 	 	match-clients { any; };			#其他ip都符合第二类型
+  		zone "tedu.cn" IN {
+      	type master;
+      	file "tedu.cn.other";
+  	 };
+  		zone "qq.com" IN {
+      	type master;
+      	file "qq.com.other";
+   	};
+	};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+	
+	
