@@ -1,0 +1,98 @@
+安装svn服务器:
+	yum -y install subversion
+创建版本库:
+	mkdir /var/svn/ 
+	svnadmin create /var/svn/project
+初始化:
+	cd /usr/lib/systemd/system/
+	svn import . file:///var/svn/project/ -m "Init Data"
+配置文件:开头无空格
+	vim /var/svn/project/conf/svnserve.conf
+	[general]
+	### These options control access to the repository for unauthenticated
+	### and authenticated users.  Valid values are "write", "read",
+	### and "none".  The sample settings below are the defaults.
+	anon-access = none    #19行，匿名无任何权限
+	auth-access = write    #20行，有效账户可写
+	password-db = passwd   #27行，密码文件
+	authz-db = authz       #34行，ACL访问控制列表文件
+用户名和密码:
+	vim /var/svn/project/conf/passwd 
+		… …
+		[users]
+		harry = 123456
+		tom = 123456
+访问控制:
+	cat /var/svn/project/conf/authz 
+	[/]     #定义acl访问控制
+	harry = rw                   #用户对项目根路径可读可写
+	tom = rw
+启动服务:
+	svnserve -d  -r /var/svn/project
+客户端同步:
+	cd /tmp
+	svn --username harry --password 123456 co svn://192.168.2.100/ code
+	          #将服务器上的数据同步到本地
+	修改任意文件后:svn ci -m "modify user"  
+	 	#将本地修改的文件同步到仓库
+	svn update                      #更新本地的文件
+	svn info     svn://192.168.2.100   #查看基本信息
+	svn log     svn://192.168.2.100    #查看日志
+	touch test.txt
+	svn add test.txt    #创建文件后,把文件加入版本管理器
+	svn ci -m "add test.txt"   #提交修改
+	svn revert 文件名   #还原未提交的文件
+	svn update    #还原本地误删的文件
+	svn merge -r 7:2 文件名  #把该文件从7版本还原到2版本
+命令大全:
+add     #添加
+ci      #提交
+co	#检查
+cat     #查看代码文件
+del     #删除
+diff     #对比
+import    #导入
+info     #查看版本
+log         #查看日志
+list       #查看文件列表
+update     #更新
+mkdir       #创建目录
+
+多人同时修改发生冲突时:
+	把正确代码文件改名: mv tuned.service.mine tuned.service
+	把其他文件删除 : rm  -rf  tuned.service.r10 tuned.service.r9
+	提交代码,解决冲突: svn ci -m "modified" 
+
+
+	 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

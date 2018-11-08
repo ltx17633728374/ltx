@@ -1,0 +1,68 @@
+iSCSI网络磁盘  默认端口：3260
+backstore,后端存储
+	– 对应到服务端提供实际存储空间的设备,需要起一个
+管理名称
+target,磁盘组
+	– 是客户端的访问目标,作为一个框架,由多个lun组成
+
+lun,逻辑单元
+	– 每一个lun需要关联到某一个后端存储设备,在客户端
+会视为一块虚拟硬盘
+
+装包:yum -y install targetcli
+	运行:targetcli
+创建和命名后端存储:backstores/block create name=nsd dev=/dev/vdb1
+			后端存储 块设备     创建        命名       具体设备
+创建磁盘组:iscsi/ create iqn.2018-09.com.example:server0
+			创建     固定格式                   自定义名字
+创建逻辑单元:iscsi/iqn.2018-09.com.example:server0/tpg1/luns create /backstores/block/nsd
+
+配置访问控制:iscsi/iqn.2018-09.com.example:server0/tpg1/acl create iqn.2018-09.com.example:desktop0(添加可以访问的客户端)
+
+iscsi/iqn.2018-09.com.example:server0/tpg1/portals create 172.25.0.11
+设置服务端ip与端口(默认端口3260)
+
+重启服务:systemctl restart target
+	  systemctl enable target
+客户端:yum -y install iscsi-initiator-utils
+	rpm -q iscsi-initiator-utils
+	vim  /etc/iscsi/initiatorname.iscsi 
+   InitiatorName=iqn.2018-09.com.example:desktop0
+	重启服务:[root@desktop0 ~]# systemctl restart iscsid
+  		Warning: Unit file of iscsid.service changed on  
+  		disk, 'systemctl daemon-reload' recommended.
+ 		[root@desktop0 ~]# systemctl daemon-reload
+ 		[root@desktop0 ~]# systemctl restart iscsid
+	发现iscsi 磁盘
+	man iscsiadm 搜索/example 到大写的EXAMPLE
+	复制例子,改写ip
+	重启新的服务systemctl restart iscsi
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

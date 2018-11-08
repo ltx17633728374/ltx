@@ -1,0 +1,63 @@
+部署mariadb数据库服务器，默认端口 3306
+RHEL7 中的 MariaDB 相关包
+安装mariadb-server:提供服务端有关的系统程序
+	yum -y install mariadb-server
+	systemctl restart mariadb
+	systemctl enable mariadb
+数据库:
+使用mysql命令进入数据库
+show   databases;         #显示所有的库
+create  database  nsd1808;   #创建nsd1808库
+drop  database  nsd1808;     #删除nsd1808库
+exit                #退出
+设置数据库管理员:
+	数据库管理员root，用户信息存储mysql库中表user
+	系统管理员root，用户信息存储/etc/passwd
+改数据库账号密码:
+	mysqladmin [-u用户名] [-p[旧密码]] password '新密码'
+	# mysql -u root -p         #交互式登陆
+	Enter password:
+	mysql -u root -p123      #非交互式登陆
+   命令行操作已知旧密码，修改新的密码
+	mysqladmin -u root -p123   password '321'
+
+禁止监听:
+	vim /etc/my.cnf
+	[mysqld]
+	skip-networking    //跳过网络监听
+	systemctl restart mariadb
+数据库恢复数据:
+	wget http://classroom.example.com/pub/materials/users.sql
+	mysql -u root -p123 nsd < users.sql 
+数据库内的操作:
+	  增 insert    删 delete   改 update   查select
+	use nsd;         #进入nsd库
+	show  tables;             #查看所有表格
+	select  *  from  base;    #查询base所有字段内容
+	select  *  from  location; #查询location所有字段内容
+	desc   表名                 #查询表结构
+   条件查询:where  表字段='值'
+	1,密码是 solicitous 的人的名字
+	select name from base where password='solicitous'
+	2,有多少人的 姓名是 Barbara 同时居住在 Sunnyvale?
+	select * from base,location where base.name='Barbara' and location.city='Sunnyvale' and base.id=location.id
+		寻找数据
+	select count(*)from base,location where base.name='Barbara' and location.city='Sunnyvale' and base.id=location.id
+		整合数据
+	insert  base  values  ('6','Barbara','123456');在base第六行添加数据
+	insert  location  values  ('6','Sunnyvale');在location第六行添加数据
+访问控制:
+grant select on nsd.* to lisi@localhost identified  by  '123'
+	权限名称    库名         用户@客户机地址                      密码
+当lisi在本机登录访问时可以获得所有表格的查询权限
+
+  禁止无密码登录:
+	select user,host,password   from user where password='' 查询空密码用户
+	delete from  user  where  password='' 删除空密码用户
+	flush  privileges;   #刷新数据所有策略
+
+
+
+
+
+
