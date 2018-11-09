@@ -1,0 +1,40 @@
+自定义udev规则
+插入u盘后查看u盘的信息:
+	udevadm monitor --property  #加载设备时,查看相关属性
+	udevadm info --query=path --name=/dev/sda        #查看设备的路径
+	udevadm info --query=property --path=/block/sda  #查看设备分区的属性
+	udevadm info --query=all --attribute-walk --path=/block/sda  #查看设备分区的标识
+	
+	vim /etc/udev/rules.d/70-usb.rules  #修改规则,自建文件
+	SUBSYSTEMS=="usb",ATTRS{manufacturer}=="TOSHIBA",ATTRS{serial} \
+	=="60A44CB4665EEE4133500001",RUN+="/usr/bin/wall udisk plugged in"
+	#当这个u盘插入时,发送所有消息 "plugged in"
+	ACTION=="add",ENV{ID_VENDOR}=="TOSHIBA",ENV{DEVTYPE}=="partition", \
+	ENV{ID_SERIAL_SHORT}=="60A44CB4665EEE4133500001",SYMLINK="usb%n"
+	#当这个u盘插入时,给分区命名
+	ACTION=="add",ENV{ID_VENDOR}=="TOSHIBA",ENV{DEVTYPE}=="partition", \
+	ENV{ID_SERIAL_SHORT}=="60A44CB4665EEE41333500001",SYMLINK="usb%n", \
+	OWNER="root",GROUP="root",MODE="0644"
+	#当这个u盘插入时,更改权限
+	ACTION=="add",ENV{ID_VENDOR}=="TOSHIBA",ENV{ID_SERIAL_SHORT}=="60A44CB4665EEE4133500001",\ 
+	RUN+="/usr/bin/systemctl start httpd"
+	#插入时起httpd
+	ACTION=="remove",ENV{ID_VENDOR}=="TOSHIBA",ENV{ID_SERIAL_SHORT}=="60A44CB4665EEE4133500001",\
+	RUN+="/usr/bin/systemctl stop httpd"
+	#拔出时关闭httpd
+	==   表示匹配
+	!=	不匹配
+	=	指定赋予的值
+	+= 	添加新值
+	;=	指定值,不允许替换
+	NAME="udisk"	定义设备名称
+	SYMLINK+="data"    定义设备别名
+	OWNER="student"    定义设备所有者
+	MODE="0600"        定义设备权限
+	ACTION=="add"	判断设备的操作动作
+	KERNEL=="sd[a-z]1" 判断设备的内核名称
+	RUN+=程序		为设备添加程序
+	%k:内核所识别出来的设备名
+	%n:设备的内核编号
+	%p:设备路径
+	%%:%符号本身

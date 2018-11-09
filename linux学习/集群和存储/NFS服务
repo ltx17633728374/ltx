@@ -12,5 +12,10 @@
 安全的nfs共享服务
 服务端:systemctl restart nfs-secure-server nfs-server
 	systemctl enable nfs-secure-server nfs-server
-客户端:systemctl restart nfs-secure:
+客户端:systemctl restart nfs-secure
 	systemctl enable nfs-secure
+
+客户端挂载时:vim /etc/exports
+/root 192.168.2.100(rw,no_root_squash)   #让roo用户不被降级
+
+
