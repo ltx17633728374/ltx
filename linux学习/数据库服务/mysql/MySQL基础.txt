@@ -21,3 +21,185 @@ rpm -qa | grep -i mysql :查询所有包含MySQL字样的软件包
 		/var/lib/mysql
 	配置:
 		/etc/my.cnf
+	初始化密码:
+		cat /var/log/mysqld.lod | grep password
+	进入MySQL:
+		mysql -hloaclhost -uroot -p'password'
+
+mysql命令:
+	alter user root@"localhost" identified by "123qqq...A"; #改密码 
+		#密码要数字,字母,符号和大小写
+	show variables like "%password%";    列出密码变量
+	set global validate_password_policy=0;  把密码策略改成0(0是简单密码,1是要数字,字母,符号,2是要特殊符号,字典文件)
+	set global validate_password_length=6;   把密码长度改为6
+	可以把所有选项写进配置文件/etc/my.cnf,实现永久生效
+     
+	库的常见操作:
+		create database gamedb;  #可以字母数字下划线,不能纯数字,不能能特殊字符,不能用命令命名
+		select database(); #显示当前所在库
+		show tables;      #显示表格
+		drop database gamedb;    #删除库
+	库语言:
+	   ddl:create alter drop
+	   dml:insert update delete
+	   dcl:grant revoke
+	   dtl:commit rollback savepoint
+	表命令:
+		create table studb.stuinfo(name char(10),age int);
+			#建表,两列,一列名字,一列年龄,名字是字符,年龄是数字
+		desc stuinfo; #查看表结构
+		desc mysql.user    #绝对路径查看表结构
+		drop table studb.stuinfo;  #删除表
+		insert into studb.stuinfo values("a",23),("b",23);
+			#在表中插入两行
+		update studb.stuinfo set age=19 where name="a";
+			#改名字为a的年龄为19
+		update studb.stuinfo set age=18;
+			#把所有人的年龄改为18
+		delete from studb.stuinfo where name="b";
+			#删除名字为b的人
+		delete from studb.stuinfo;
+			#删除表的数据
+	表的字符集:
+		gb2312 utf8
+	让表内有中文:
+		create table t1 (id int);    #建表
+		show create table t1;    #查看建表时的命令
+		create table t1 (id int) default charset=utf8    #建表时指定编码格式为utf8,即可支持中文
+		
+mysql数据类型:
+	数值:
+		整型:   使用时加上unsigned即可使用无符号存储范围
+			tinyint 1字节 有符号范围-128~127 无符号范围 0~255 
+			smallint 2字节 有符号范围-32768~32767 无符号范围 0~65535 
+			mediumint 3字节 有符号范围-2^23~2^23-1 无符号范围 0~2^24-1
+			int 4字节 有符号范围-2^31~2^31-1 无符号范围 0~2^32-1 
+			bigint 8字节 有符号范围-2^63~2^63-1 无符号范围 0~2^64-1 
+		
+		浮点型:
+			单精度:float 4字节  2^32  使用:float(7,2) 总数7位,小数点2位
+			双精度:double  8字节
+	字符:
+		定长(长度不够会自动空格补齐)
+			char  255 字符
+		变长
+			varchar 65535 字符
+		大文本类型:
+			text/blob 大于65535字符使用
+	枚举:
+		enum(1,2,3):从1,2,3中选择一个
+	日期时间:
+		set(1,2,3):从中选择一个或者多个  你
+		年 year yyyy范围1901-2155
+		时间:  time hhmmss    121212
+		日期: date yyyymmdd   20181111
+		日期时间:timestamp,datetime  (yyyymmddhhmmss)
+			timestamp 1970-01-01 -2038-1-19
+			datetime 1000-01-01 -9999-12-31
+
+使用时间函数:
+	now() 获取系统当前日期和时间
+	year() 获取指定时间中的年份
+	day() 获取指定时间中的日期
+	sleep(N) 休眠N秒
+	curdate() 获取当前的系统日期
+	curtime() 获取当前的系统时刻
+	month() 获取指定时间中的月份
+	date() 获取指定时间中的日期
+	time() 获取指定时间中的时刻
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -80,13 +80,63 @@ ceph文件系统:
 	#跟samba共享挂载的格式一样,ceph为文件系统类型,192.168.4.11为mon的节点ip
 	admin为用户名,secret是密钥,密钥在/etc/ceph/ceph.client.admin.keyring中找到
 
+对象存储:
+	键值存储,通过接口指令,想存储服务上传下载数据
+	对象存储中所有数据都被认为是一个对象,所以任何数据都可存入对象存储服务器
+	比如百度网盘就是一个对象存储
+	
+	在集群中建立一个RGW服务端,
+		ceph-deploy install --rgw node5 #通过node1安装rdw软件
+		cd /root/ceph-cluster 
+		ceph-deploy admin node5    #传配置密钥到node5
+		ceph-deploy rgw create node5 #启动一个rgw服务
+	在node5操作
+		systemctl status ceph-radosgw@\*   #查看服务的状态
+		vim /etc/ceph/ceph.conf    #在结尾追加三行
+		[client.rgw.node5]
+		host = node5
+		rgw_frontends = "civetweb port=8000"
 
+    对象存储是不能直接访问的,通过第三方软件才可以访问
+	node5操作
+		radosgw-admin user create \   #创建访问的账户
+		--uid="testuser" --display-name="First User"
+		… …
+		"keys": [
+        	{
+            	"user": "testuser",
+            	"access_key": "5E42OEGB1M95Y49IBG7B",
+            	"secret_key": "i8YtM8cs7QDCK3rTRopb0TTPBFJVXdEryRbeLGK6"
+        	}
+    		],
+		... ...
+		radosgw-admin user info --uid=testuser  #testuser是用户,key是密钥
+    客户端操作
+	yum install s3cmd-2.0.1-1.el7.noarch.rpm
 
-
-
-
-
-
+[root@client ~]#  s3cmd –configure
+Access Key: 5E42OEGB1M95Y49IBG7BSecret Key: i8YtM8cs7QDCK3rTRopb0TTPBFJVXdEryRbeLGK6
+S3 Endpoint [s3.amazonaws.com]: 192.168.4.15:8000
+[%(bucket)s.s3.amazonaws.com]: %(bucket)s.192.168.4.15:8000
+Use HTTPS protocol [Yes]: No
+Test access with supplied credentials? [Y/n] Y
+Save settings? [y/N] y
+//注意，其他提示都默认回车
+4）创建存储数据的bucket（类似于存储数据的目录）
+[root@client ~]# s3cmd ls
+[root@client ~]# s3cmd mb s3://my_bucket
+Bucket 's3://my_bucket/' created
+[root@client ~]# s3cmd ls
+2018-05-09 08:14 s3://my_bucket
+[root@client ~]# s3cmd put /var/log/messages s3://my_bucket/log/
+[root@client ~]# s3cmd ls
+2018-05-09 08:14 s3://my_bucket
+[root@client ~]# s3cmd ls s3://my_bucket
+DIR s3://my_bucket/log/
+[root@client ~]# s3cmd ls s3://my_bucket/log/
+2018-05-09 08:19 309034 s3://my_bucket/log/messages 
+测试下载功能
+[root@client ~]# s3cmd get s3://my_bucket/log/messages /tmp/
 
 
 
