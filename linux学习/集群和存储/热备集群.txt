@@ -1,0 +1,188 @@
+在web1和web2安装keepalived
+	yum install -y keepalived
+修改配置:vim /etc/keepalived/keepalived.conf   #web1的配置
+	global_defs {
+	....
+	router_id web1    #设置路由ID号
+	}
+	vrrp_instance VI_1 {
+	state master                   #设置服务器为主服务器
+	interface eth0                 #定义网络接口
+	virtual_router_id 50           #vid号,主辅一致
+	priority 100                   #服务器优先级,数值大的获得vip
+	advert_int 1
+	authentication {	
+	 auth_type pass
+	 auth_pass 123                  #主辅服务器密码一致
+	}
+	virtual_ipaddress {
+	192.168.4.80                            #主服务器获得的vip
+	}
+	}
+	
+	vim /etc/keepalived/keepalived.conf #web2的配置
+	global_defs {
+	....
+	router_id web2    #设置路由ID号
+	}
+	vrrp_instance VI_1 {
+	state backup                    #服务器设为辅服务器
+	interface eth0
+	virtual_router_id 50
+	priority 90                      #优先级为90
+	advert_int 1
+	authentication {	
+	 auth_type pass
+	 auth_pass 123
+	}
+	virtual_ipaddress {
+	192.168.4.80
+	}
+	}
+启动服务:systemctl start keepalived  #web1,web2
+
+keepalived + lvs 服务器综合:
+	配置web1 web2,让两个服务器可以提供服务,
+	配置两台服务器的vip地址,具体操作看lvs的笔记
+    配置调度器:
+	proxy1:yum -y install keepalived
+		systemctl restart keepalived
+		yum -y install ipvsadm
+		ipvsadm -C
+	vim /etc/keepallived/keepalived.conf
+        global_defs {
+	    .....   
+	  router_id proxy1
+             ....
+	   }
+	   vrrp_instance VI_1 {
+		state master 			#此台服务器设置为主服务器
+		interface eth0                  #定义网络接口
+	      virtual_router_id 50           #vid号,主辅一致
+	       priority 100                   #服务器优先级,数值大的获得vip
+		advert_int 1
+		authentication {	
+		 auth_type pass
+		 auth_pass 123                     #主辅服务器密码一致
+		}
+		virtual_ipaddress {192.168.4.15 }   #主服务器获得的vip
+		}
+	   virtual_server 192.168.4.15 80 {    #设置vip的规则
+		delay_loop 6
+		lb_algo wrr          #设置算法为wrr
+		lb_kind DR           #调度模式为DR
+		#persistence_timeout 50     #这是保存连接50秒,不注释掉,同客户端会一直连一个服务器	
+		protocol TCP
+		  real_server 192.168.4.100 80 {  #设置真实服务器
+		    weight 1             #权重为1
+		     TCP_CHECK {         #检查方式,TCP
+			connect_timeout 3    #超时时间3秒
+			nb_get_retry 3        #检查3次
+			delay_before_retry 3    #3秒检查一次
+			}
+		    }
+		   real_server 192.168.4.200 80 {
+		      weight 2            #权重为2
+			 TCP_CHECK {        #检查方式为TCP
+			connect_timeout 3   #连接超时时间为3秒
+			nb_get_retry 3      #连接3次
+			delay_before_retry 3   #等3秒再连接
+			}
+		     }
+ 		}
+
+		systemctl start keepalived    #起服务
+		web2 的配置和web1基本一样,把优先级调低,设置为备用服务器即可
+
+HAProxy负载平衡集群
+	web1,web2上不能有回环地址
+	不能装keepailived
+	保持web1,web2,网页还在,切能访问
+在集群服务器装软件
+	yum -y installl haproxy
+修改配置文件:
+	vim /etc/haproxy/haproxy.cfg
+global
+
+ 	log 127.0.0.1 local2   ###[err warning info debug]
+ 	chroot /usr/local/haproxy
+ 	pidfile /var/run/haproxy.pid ###haproxy的pid存放路径
+ 	maxconn 4000     ###最大连接数，默认4000
+ 	user haproxy
+ 	group haproxy
+ 	daemon       ###创建1个进程进入deamon模式运行
+	defaults
+ 	mode http    ###默认的模式mode { tcp|http|health } log global   ###采用全局定义的日志
+	option dontlognull  ###不记录健康检查的日志信息
+ 	option httpclose  ###每次请求完毕后主动关闭http通道
+ 	option httplog   ###日志类别http日志格式
+ 	option forwardfor  ###后端服务器可以从Http Header中获得客户端ip
+ 	option redispatch  ###serverid服务器挂掉后强制定向到其他健康服务器
+ 	timeout connect 10000 #如果backend没有指定，默认为10s
+ 	timeout client 300000 ###客户端连接超时
+ 	timeout server 300000 ###服务器连接超时
+ 	maxconn  60000  ###最大连接数
+ 	retries  3   ###3次连接失败就认为服务不可用，也可以通过后面设置
+	listen stats
+    	bind 0.0.0.0:1080   #监听端口
+    	stats refresh 30s   #统计页面自动刷新时间
+    	stats uri /stats   #统计页面url
+    	stats realm Haproxy Manager #统计页面密码框上提示文本
+    	stats auth admin:admin  #统计页面用户名和密码设置
+  	#stats hide-version   #隐藏统计页面上HAProxy的版本信息
+	listen  websrv-rewrite 0.0.0.0:80
+   	cookie  SERVERID rewrite
+   	balance roundrobin
+   	server  web1 192.168.2.100:80 cookie app1inst1 check inter 2000 rise 2 fall 5
+   	server  web2 192.168.2.200:80 cookie app1inst2 check inter 2000 rise 2 fall 5
+   systemctl start haproxy
+   systemctl enable haproxy
+访问时:firefox http://192.168.4.5/stats
+	Queue队列数据的信息（当前队列数量，最大值，队列限制数量）
+	Session rate每秒会话率（当前值，最大值，限制数量）
+	Sessions总会话量
+	#当前值，最大值，总量，Lbtot: total number of times a server was selected选中一台服务器所用的总时间
+	Bytes（入站、出站流量）
+	Denied（拒绝请求、拒绝回应）
+	Errors（错误请求、错误连接、错误回应）
+	Warnings（重新尝试警告retry、重新连接redispatches）
+	Server(状态、最后检查的时间（多久前执行的最后一次检查）、权重、备份服务器数量、down机服务器数量、down机时长)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+

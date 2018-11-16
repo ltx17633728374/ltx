@@ -1,0 +1,96 @@
+lvs集群组成:
+	前端:负载均衡层(调度服务器)
+	中间:服务器群组层(真正运行起来的服务器)
+	底端:数据共享存储层(提供共享存储空间存储区域)
+	director server:调度服务器
+	real server :真实服务器
+	vip:虚拟ip地址
+	rip:真实ip地址
+	dip:调度器连接节点服务器ip地址
+lvs工作模式:
+	vs/nat 通过网络地址,大并发访问时,调度器性能成为瓶颈
+	vs/dr 通过路由技术,节点服务需要配置vip,
+	vs/tun 通过隧道方式,实现
+搭建lvs:
+	yum -y install ipvsadm
+	ipvsadm -A/-a 添加虚拟/真实服务器
+	ipvsadm -E/-e 修改虚拟/真实服务器
+	ipvsadm -D/d  修改虚拟/真实服务器
+	ipvsadm -C   清空所有
+	ipvsadm -Ln 查看lvs规则列表
+	-s [rr/wrr/lc/wlc]    #指定算法
+语法:
+	ipvsadm -A -t/u 192.168.1.1 -s 算法     #添加虚拟服务器
+	ipvsadm -a -t/u 192.168.1.1 -r 192.168.2.1 [-g/i/m]   #-g DR模式/-i 隧道模式 /-m NAT模式
+	ipvsadm -Ln 查看规则
+	ipvsadm-save > /etc/sysconfig/ipvsadm  #保存配置
+lvs-nat:
+	在中间服务搭建好web,然后开启路由功能:echo 1 > /proc/sys/net/ipv4/ip_forward
+	或者永久配置开启路由功能:echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
+	创建集群服务器: ipvsadm -A -t 192.168.4.5:80 -s wrr 
+	添加真实服务器: ipvsadm -a -t 192.168.4.5:80 -r 192.168.2.100 -w 1 -m
+lvs-DR:
+	DR的部署需要回环地址的支持
+	在调度器和服务器上创建网卡
+	   调度器:		
+		cp /etc/sysconfig/network-scripts/ifcfg-eth0{,:0}
+		vim /etc/sysconfig/network-scripts/ifcfg-eth0:0
+		TYPE=Ethernet
+		BOOTPROTO=none
+		DEFROUTE=yes
+		NAME=eth0:0
+		DEVICE=eth0:0
+		ONBOOT=yes
+		IPADDR=192.168.4.15
+		PREFIX=24
+	  systemctl restart network
+	   服务器
+		cp /etc/sysconfig/network-script/ifcfg-lo{,:0}
+		vim /etc/sysconfig/network-script/ifcfg-lo:0
+		DEVICE=lo:0
+		IPADDR=192.168.4.15
+		NETMASK=255.255.255.255
+		NETWORK=192.168.4.15
+		BROADCAST=192.168.4.15
+		ONBOOT=yes
+		NAME=lo:0
+		
+		vim /etc/sysctl.conf
+		net.ipv4.conf.all.arp_ignore = 1    #当arp广播询问192.168.4.15时本机忽略此广播
+		net.ipv4.conf.lo.arp_ignore = 1     #本机不向外宣告自己的lo回环地址是192.168.4.15
+		net.ipv4.conf.lo.arp_announce = 2
+		net.ipv4.conf.all.arp_announce = 2
+	     sysctl -p
+	回环地址配置完成后,配置调度器:
+		首先重置服务与防火墙:systemctl restart network
+					systemctl stop firewalld
+		安装软件:yum -y install ipvsadm
+			ipvsadm -C   #清空所有规则
+			ipvsadm -A -t 192.168.4.15:80 -s wrr   #创建集群的新规则			
+			ipvsadm -a -t 192.168.4.15:80 -r 192.168.4.100 -g -w 1   #添加真实服务器,并使用路由
+			ipvsadm -a -t 192.168.4.15:80 -r 192.168.4.200 -g -w 1   #添加真实服务器,并使用路由
+			ipvsadm-save -n > /etc/sysconfig/ipvsadm  #保存规则
+		自动检查脚本在文件夹中
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+									      

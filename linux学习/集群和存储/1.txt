@@ -1,0 +1,94 @@
+ceph创建镜像,真实机客户端使用.
+	rbd create vm1-image --image-feature  layering --size 10G
+		#在集群上创建名字为vm1的image文件
+	rbd create vm2-image --image-feature  layering --size 10G
+		#在集群上创建名字为vm2的image文件
+    rbd list
+	rbd info vm1-image   			#显示vm1的信息
+	qemu-img info rbd:rbd/vm1-image      #也是显示vm1的信息
+        
+	集群上的配置要开启认证:
+	cat /etc/ceph/ceph.conf  
+		[global]
+		mon_initial_members = node1, node2, node3
+		mon_host = 192.168.2.10,192.168.2.20,192.168.2.30
+		auth_cluster_required = cephx                        #开启认证
+		auth_service_required = cephx                       #开启认证
+		auth_client_required = cephx                         #开启认证
+	客户端操作:	
+		yum -y  install ceph-common
+		scp 192.168.4.11:/etc/ceph/ceph.conf  /etc/ceph/  
+			#把配置传到客户端
+		scp 192.168.4.11:/etc/ceph/ceph.client.admin.keyring /etc/ceph/
+			#把密钥传到客户端		
+	建立临时文件:
+		vim secret.xml
+		<secret ephemeral='no' private='no'>
+		<usage type='ceph'>
+		<name>client.admin secret</name>
+		</usage>
+		</secret>
+	让虚拟机管理器识别新建的文件:
+	 	virsh secret-define --file secret.xml  
+		#会生成uuid
+		ceph auth get-key client.admin   #查看密钥
+	设置新的虚拟机:
+		virsh secret-set-value \
+		--secret 新建虚拟机的uuid	\
+		--base64 密钥
+	修改虚拟机的配置:
+		virsh edit vm1  #vim1是虚拟机名称
+		<disk type='network' device='disk'>
+      	<driver name='qemu' type='raw’/>
+      	<auth username='admin'> 
+      	<secret type='ceph' uuid='733f0fd1-e3d6-4c25-a69f-6681fc19802b’/>
+      	</auth>
+      	<source protocol='rbd' name='rbd/vm1'>          <host name='192.168.4.11' port='6789’/>     </source>
+    		<target dev='vda' bus='virtio'/>
+      	<address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
+    		</disk>
+	操作完成后,新的虚拟机的镜像就不在本地了.而是通过ceph共享出来的
+
+
+ceph文件系统:
+	cephFS :分布式文件系统,通过计算机网络与节点相连,
+	使用ceph集群提供与POSIX兼容的文件系统
+	允许linux直接将ceph存储mount到本地	
+
+搭建元数据服务器
+        元数据:用来描述一个文件系统的特征的系统数据
+	  比如:访问权限,文件拥有者,以及文件数据块的分布信息
+	cephFS的节点必须为MDSs的节点
+	在集群新加虚拟机,装包,启动mds节点		
+		yum -y install ceph-mds
+	node1上操作:
+		cd /root/ceph-cluster
+		ceph-deploy mds create node4   #给新建的虚拟机创建mds节点
+		ceph-deploym admin node4     #同步配置文件和key		
+	node4上操作	
+		ceph osd pool create cephfs_data 128 #创建储存池,大小128PG
+		ceph osd pool create cephfs_metadata 128 #创建存储池,大小128PG
+		ceph mds stat   #查看mds的状态
+	 ceph fs new myfs1 cephfs_metadata cephfs_data   #fs是文件系统名,myfs1是集合名
+		#必须先metadata,再data
+	ceph fs ls       #查看信息
+	ceph mds stat    #查看服务情况
+
+客户端的挂载:
+	mount -t ceph 192.168.4.11:6789:/  /mnt/cephfs/ \
+	-o name=admin,secret=AQBTsdRapUxBKRAANXtteNUyoEmQHveb75bISg==
+	#跟samba共享挂载的格式一样,ceph为文件系统类型,192.168.4.11为mon的节点ip
+	admin为用户名,secret是密钥,密钥在/etc/ceph/ceph.client.admin.keyring中找到
+
+
+
+
+
+
+
+
+
+
+
+
+

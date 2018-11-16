@@ -1,0 +1,130 @@
+iptables -F #把防火墙规则关掉
+iptables -nL #查看防火墙规则
+
+
+
+ceph:分布式文件系统
+	高扩展,高可用,高性能
+	提供对象存储,块存储,文件系统存储,PB级别的存储
+ceph组件:
+	OSDs --存储设备
+	Monitors --集群监控控件
+	MDSs --存放文件系统的元数据
+	Client --客户端
+配置:
+	找到rhcs2.0-rhosp9-20161113-x86_64.iso这个光盘文件,通过真机共享出去
+	在集群中的yum源文件中加入这个光盘的路径  (在百度网盘中)
+		[mon]
+		name=mon
+		baseurl=ftp://192.168.4.254/ceph/rhceph-2.0-rhel-7-x86_64/MON
+		gpgcheck=0
+		[osd]
+		name=osd
+		baseurl=ftp://192.168.4.254/ceph/rhceph-2.0-rhel-7-x86_64/OSD
+		gpgcheck=0
+		[tools]
+		name=tools
+		baseurl=ftp://192.168.4.254/ceph/rhceph-2.0-rhel-7-x86_64/Tools
+		gpgcheck=0
+	修改所有主机的/etc/hosts
+		192.168.4.10  client
+		192.168.4.11     node1
+		192.168.4.12     node2
+		192.168.4.13     node3
+	让node1实现免密登录其他主机(包括自己)
+	让三台主机的NTP时间同步的主机一致
+	清理防火墙规则 iptables -F
+	为每个虚拟机准备磁盘,3块
+		cd /var/lib/libvirt/images	
+		qemu-img create -f qcow2 node1-vdb.vol 10G
+		qemu-img create -f qcow2 node1-vdc.vol 10G
+		qemu-img create -f qcow2 node1-vdd.vol 10G
+	yum -y install ceph-deploy
+	ceph-deploy --help  #查看命令
+	mkdir ceph-cluster
+	cd ceph-cluster 
+	在目录里创建集群配置
+		ceph-deploy new node1 node2 node3    #创建
+		ceph-deploy install node1 node2 node3   #给所有节点安装软件包
+		ceph-deploy mon create-initial          #初始化所有节点的mon服务
+		vim ceph.conf
+		public_network = 192.168.4.0/24    #在文件最后追加
+		ceph-deploy --overwrite-conf config push node1 node2 node3   #把配置文件推送给所有虚拟机
+	创建osd (所有主机)
+		parted /dev/vdb mklabel gpt
+		parted /dev/vdb mkpart primary 1M 50%
+		parted /dev/vdb mkpart primary 50% 100%
+		chown ceph.ceph /dev/vdb1
+		chown ceph.ceph /dev/vdb2
+	初始化(仅node1)	
+		ceph-deploy disk zap node1:vdc node1:vdd
+		ceph-deploy disk zap node2:vdc node2:vdd
+		ceph-deploy disk zap node3:vdc node3:vdd
+	创建osd存储空间(仅node1)
+		ceph-deploy osd create node1:vdc:/dev/vdb1 node1:vdd:/dev/vdb2   #vdc是存储,vdb1是放日志 
+		ceph-deploy osd create node2:vdc:/dev/vdb1 node2:vdd:/dev/vdb2
+		ceph-deploy osd create node3:vdc:/dev/vdb1 node3:vdd:/dev/vdb2
+
+	ceph -s     #查看状态
+
+ceph块设备,也叫RADOS设备,RBD (RBD驱动集成在Linux内核中,支持快照和COW克隆,支持缓存内存,从而提升性能)
+	分布式块存储 -- Ceph
+			--Cinder
+	镜像的创建
+		ceph osd lspools
+		rbd create demo-image --image-feature  layering --size 10G  #创建叫demo的镜像
+		rbd create rbd/image --image-feature  layering --size 10G   #创建叫image的镜像
+		rbd list    #显示储存池
+		rbd info demo-image 查看配置
+	调整大小:
+		rbd resize --size 7G image --allow-shrink   #缩小容量
+	 	rbd info image    
+		rbd resize --size 15G image    #扩大容量
+		rdb info image
+	格式化:
+		mkfs.xfs /dev/rbd0
+		mount /dev/rbd0 /mnt
+	rbd map demo-image    #直接映射镜像,指定共享镜像的名字即可映射到本地
+客户端访问集群:(通过KRBD)
+	装包 yum -y install ceph-common
+	scp 192.168.4.11:/etc/ceph/ceph.conf /etc/ceph/ 
+		#拷贝配置文件,让客户端知道集群位置
+	scp 192.168.4.11:/etc/ceph/ceph.client.admin.keyring /etc/ceph
+		#拷贝密钥文件,让客户端有权限访问集群
+	rbd map image   #把名字叫image的共享文件映射到本地
+	rbd showmapped   #查看文件
+	客户端挂载:mkfs.xfs /dev/rbd0
+		   mount /dev/rbd0/mnt/
+		   echo "test" > /mnt/test.txt
+创建镜像快照(在node1)
+	rbd snap ls image  (未创建时没有)
+	rbd snap create image --snap image-snap1    #创建快照
+	rbd snap ls image   #创建后可以显示
+	删除刚刚创建的test.txt
+	rbd snap rollback image --snap image-snap1
+	umount /mnt
+	mount /dev/rbd0 /mnt/
+	ls /mnt
+	rbd snap protect image --snap image-snap1   #保护这个镜像
+	rbd snap rm image --snap image-snap1     #删不掉
+	rbd clone \
+	image --snap image-snap1 image-clone --image-feature layering
+		#使用image快照image-snap1克隆一个新的image-clone镜像
+	rbd info image-clone   #查看父镜像与快照的关系
+	....
+	parent:rbd/image@image-snap1   #快照路径,克隆镜像不能独立工作
+	.....
+	
+	rbd flatten image-clone    #完全克隆父镜像
+	rbd info image-clone       #再查看时,父镜像信息不会出现
+撤销磁盘映射
+rbd unmap /dev/rbd/{poolname}/{imagename}
+rbd unmap /dev/rbd/rbd/image
+删除快照与镜像:
+	rbd snap rm image --snap image-snap
+	 rbd  rm  image
+
+
+
+
+	

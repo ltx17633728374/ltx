@@ -1,0 +1,23 @@
+数据库解析: 
+	DB:数据库
+	DBMS:数据库管理系统
+	DBS:即DB+DBMS,带有数据库并且整合了数据库管理软件的计算机系统
+数据库集合:
+	Oracle
+	DB2
+	SQL server
+	MySQL/MariaDB
+	Access
+	PostgreSQL
+	Sybase
+
+MySQL:适合中小型企业的关系型数据库服务软件
+	支持多种操作系统
+	支持多种编程语言,php,java,python,perl
+	可移植性强
+rpm -Uvh 软件包:如果当前软件包安装过,就升级
+rpm -qa | grep -i mysql :查询所有包含MySQL字样的软件包
+	目录:
+		/var/lib/mysql
+	配置:
+		/etc/my.cnf

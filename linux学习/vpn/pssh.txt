@@ -28,9 +28,29 @@ pssh选项:
 	>  -x '-o StrictHostKeyChecking=no'   echo hello
 使用秘钥连接:
 	ssh-keygen -N  ''   -f /root/.ssh/id_rsa    #生成秘钥(非交互)
-	ssh-copy-id  host1    #穿秘钥
+	ssh-copy-id  host1    #传秘钥
+	 pssh -h host.txt  echo hello   #使用秘钥链接并输出
 
-pscp:传文件到远程的电脑
+pscp.pssh:传文件到远程的电脑
 	-r:可以穿目录
 pslurp:
 pslurp  -h host.txt  /etc/passwd  /pass   #把远程的机子下的/etc/passwd 下载到当前目录 并且打上pass标记
+
+pnuke  -h host.txt  sleep :把远程主机上的进程杀死
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
