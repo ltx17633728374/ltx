@@ -1,0 +1,115 @@
+MySQL索引:
+	index:普通索引
+	--一个表中可以有多个index字段
+	--字段的值允许重复,可以赋值null
+	--常把查询条件的字段设置为index字段
+	--index字段key标志是mul
+      create index 索引名 on 表名(字段名);    
+	   #在表中某一个字段下面建立一个索引
+	drop index 索引名 on 表名;
+	   #删除索引
+	show index from t3;
+	  #查看索引的详细信息
+	create table t5 (name char(10) not null,age int(3) not null,index(name), index(age));
+primary key 主键
+	一个表中只能有一个primary key 字段
+	对应字段值不允许有重复,且不允许null值
+	如果有多个字段都作为primary key ,称为复合主键,必须一起创建
+	create table t6 (id int primary key auto_increment);
+		#主键的创建,并且让这个主键的值可以自动增加1
+	create table t6 ( clientip char(15),  serport smallint unsigned, status enum("allow","deny"), primary key(clientip,serport) );
+		#复合主键的创建,让clientip,serport 不会同时同步
+	alter table t6 dorp primary key;
+		#删除主键,复合主键也是这么删
+	alter table t6 modify id int not null   #取消自增长
+
+
+foreign key 外键
+	让当前表字段的值在另一个表中字段值的范围内选择
+    使用外键的条件:
+	表的存储引擎必须是innodb
+	字段类型要一致
+	被参考字段必须要是索引类型的一种
+		
+    基本用法:
+	foreign key(表1的字段名)
+	references 表b(字段名)
+	on update cascade  #同步更新
+	on delete cascade   #同步删除
+     实例:
+	create table yg(
+	>yg_id int primary key auto_increment,
+	>name char(10)
+	>)engine=innodb;    #指定员工为主键值,自增长,且存储库为innodb
+	create table gz ( gz_id int, pay float(7,2), foreign key(gz_id) references 
+	>yg(yg_id) on update cascade on delete cascade) engine=innodb;
+		#建立gz表时指定外键的表为yg
+	alter table gz add primary key(gz_id);
+		#建立完成之后把gz_id改为主键,然后就可以避免gz表中id的值重复和null
+	alter table gz drop foreign key gz_ibfk_1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

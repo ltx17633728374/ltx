@@ -52,6 +52,8 @@ mysql命令:
 		drop table studb.stuinfo;  #删除表
 		insert into studb.stuinfo values("a",23),("b",23);
 			#在表中插入两行
+		insert into studb.stuinfo(name) values("c")
+			#在表中插入一行,名字为c,年龄不赋值
 		update studb.stuinfo set age=19 where name="a";
 			#改名字为a的年龄为19
 		update studb.stuinfo set age=18;
@@ -88,9 +90,11 @@ mysql数据类型:
 			text/blob 大于65535字符使用
 	枚举:
 		enum(1,2,3):从1,2,3中选择一个
-	日期时间:
-		set(1,2,3):从中选择一个或者多个  你
+		set(1,2,3):从中选择一个或者多个 
+		日期时间:
 		年 year yyyy范围1901-2155
+			year默认字段是四位,如果想变成两位:01~69时是2001~2069
+							70~99是1970~1999
 		时间:  time hhmmss    121212
 		日期: date yyyymmdd   20181111
 		日期时间:timestamp,datetime  (yyyymmddhhmmss)
@@ -109,11 +113,33 @@ mysql数据类型:
 	time() 获取指定时间中的时刻
 	
 
+表的约束条件:
+	Null 允许为空,默认设置
+	NOT NULL 不允许为空
+	KEY 索引类型
+		普通索引
+		唯一索引
+		主键
+		外键
+		全文索引
+	Default 设置默认值.缺省为NULL
 
+修改表结构:
+	alter table t4 add city char(10);   #向表中新建结构city
+	alter table t4 add city char(10) first; #在所有列的前面添加city列
+	alter table t4 add city char(10) after age;   #在age列的后面添加city列 
+   修改字段类型:
+	alter table t4 modify age tinyint not null default 25;   #把年龄的值改为不允许为空,必须要先加默认
+	alter table t4 modify age tinyint default 25 after name;  #把年龄列调到name后面
+	alter table t4 modify name  char(3);                         #把名字的数值调整为3
+  修改字段名字:
+	alter table t4 change name real_name char(3);         #把字段name改为real_name
+  删除字段:
+	alter table t4 drop age, drop name;        #删除表中的age列和name列
 
-
-
-
+修改表名:
+	cd /var/lib/mysql/studb
+	mv t4.frm table4.frm       #把表格t4改成table4.frm
 
 
 
