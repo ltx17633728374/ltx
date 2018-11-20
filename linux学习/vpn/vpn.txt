@@ -41,7 +41,7 @@ L2TP+IPSec VPN:
 	include /etc/ipsec.d/*.conf  #加载该目录下的所有配置文件
 	...
 	
-	vim /et/ipsec.d/myipsec.conf  #新建文件
+	vim /etc/ipsec.d/myipsec.conf  #新建文件
 	(参考笔记文件的myipsec.conf)
 	conn IDC-PSK-NAT
     	rightsubnet=vhost:%priv                        //允许建立的VPN虚拟网络

@@ -173,7 +173,7 @@ sed工具:
 		sed -n '3,+10p' /etc/passwd   #打印第三行和后面的10行
 		sed -n '1~2p' /etc/passwd     #打印奇数行
 		sed -n '2~2p' /etc/passwd     #打印偶数行
-		sed -n 'root/p'               #打印包含root的
+		sed -n '/root/p'               #打印包含root的
 	d:删除行
 		sed -n 'xml/d' a.txt         #删除所有包含xml的行
 		sed -n 'xml/!d' a.txt        #删除不包含xml的行
