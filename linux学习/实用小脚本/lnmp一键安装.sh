@@ -12,7 +12,7 @@ choice(){
 }
 install_nginx(){
  useradd -s /sbin/nologin nginx &> /dev/null
- if [ -f nginx-1.12.2.tar.gzi ];then
+ if [ -f nginx-1.12.2.tar.gz ];then
  tar -xf nginx-1.12.2.tar.gz
  cd nginx-1.12.2
  yum -y install gcc pcre-devel openssl-devel make
