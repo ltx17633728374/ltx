@@ -27,7 +27,7 @@ install_nginx(){
 }
 install_mysql(){
  echo "请确保拥有MySQL的yum源"
- yum -y install mysql-community-* >& /dev/null
+ yum -y install mysql-community-* 
  if [ $? -eq 0 ];then
  echo "安装成功"
  else
@@ -36,7 +36,7 @@ install_mysql(){
 }
 install_php(){
  if [ -f php-fpm-5.4.16-42.el7.x86_64.rpm ];then
- yum -y install php php-fpm-5.4.16-42.el7.x86_64.rpm php php-mysql
+ yum -y install php php-fpm-5.4.16-42.el7.x86_64.rpm php-mysql
  else
  echo "请下载php-fpm包"
 fi

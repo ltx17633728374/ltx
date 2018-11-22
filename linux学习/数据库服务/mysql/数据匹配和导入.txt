@@ -1,0 +1,255 @@
+mysql体系:
+	管理工具:命令
+	连接池:
+	sql接口:
+	分析器:
+	优化器:
+	查询缓存:缓存查找过的数据,从系统划分出的物理内存
+	存储引擎:
+	文件系统:
+存储引擎:
+	show engines;    #显示所有
+	修改默认存储引擎:
+		vim /etc/my.cnf
+		在mysql标题下写入想要修改的默认引擎:
+			default-storage-engine=myisam
+	alter table t3 engine=myisam     #修改已经存在的表的存储引擎		
+
+myisam:
+	支持表级锁
+	不支持事务,事务回滚,外键
+innodb:
+	支持行级锁定
+	支持事务,事务回滚,外键
+
+表的文件:
+	myisam(查询多个表,节省系统资源)
+		表名.frm  #此文件是存储表的结构
+		表名.myd   #此文件是表数据
+		表名.myi    #表里字段的排列信息
+	innodb(写访问多个表,并发访问量大)
+		表名.ibd    #表数据和表的索引信息
+		表名.frm   #表名和表结构		
+		ib_logfile,ibdata1     #事务日志文件:记录innodb的表所有的操作
+
+MySQL锁:
+	锁粒度:
+		表级锁
+		行级锁
+		页级锁:对整个页面加锁(页面就是MySQL管理数据的基本存储单位)
+	锁类型:
+		读锁:支持并发读
+		写锁:独占类型,上锁期间其他线程不许读.也不许写
+
+	show status;      #查看所有状态变量
+	show status like "%lock%"  #查看锁变量
+
+事务:连接服务器开始到断开的过程
+   特性:原子性:事务的整个操作是整体,全部成功或者全部失败
+	一致性:事务操作的前后,表中的记录没变化
+	隔离性:事务操作是相互隔离不受影响的
+	持久性:数据一旦提交,不可改变,永久改变表数据
+	
+	show variables like "%auto%"   #找到自动执行的变量
+	set autocommit=off;    #关闭自动提交功能
+	rollback;   #数据回滚
+	commit;   #数据提交
+
+数据导入:
+	load data infile "目录名/文件名"
+	into table 表名
+	fields terminated by "分隔符"
+	lines terminated by "\n"
+    注意:
+	字段分隔符要与文件内一致
+	指定导入文件的绝对路径
+	导入数据的表字段类型要与文件字段匹配
+	禁用selinux保护机制
+     路径:
+	show variables like "secure_file_priv";
+		命令显示的路径即为导入路径
+     vim /etc/my.cnf
+	[mysqld]
+	secure_file_priv="/mydata"
+              #把默认寻找的路径改为/mydata
+
+数据导出:
+	select * from user into outfile "目录名/文件名"
+	fields terminated by "分隔符"
+	lines terminated by "\n";
+
+数据查询:
+	增加表记录:		
+		insert into 表名 values (字段值列表);
+		insert into 表名
+			values
+			(字段值列表),
+			(字段值列表);
+		insert into 表名(字段名列表) values (字段值列表);
+		insert into 表名 (字段名列表)
+			values 
+			(字段值列表),
+			(字段值列表);
+	    注意:
+		字段值要与字段类型相互匹配
+		对于字符类型的字段,要用双或单引号括起来
+		依次给所有字段辅助时,字段名可以省略
+		只给一部分字段赋值时,必须明确写出对应字段名称
+	查询表:
+		select 字段1, ..., 字段N from 表名;
+		select 字段1, ..., 字段n from 表名;
+			where 条件表达式;
+	     注意:
+		使用*可匹配所有字段
+		指定表名时,可采用 库名.表名 的形式
+	更新表:
+		update 表名 set 字段1=字段1值,字段2=字段2值,字段n=字段n值;
+		update 表名 set 字段1=字段1值,字段2=字段2值,字段n=字段n值
+			where 条件表达式;
+	    注意:
+		字段值要与字段类型匹配
+		对于字符类型的字段,要用双或单引号括起来
+		若不使用where限定条件,会更新所有记录
+		限定条件时,只更新匹配条件的记录
+	删除表:
+		delete from 表名 where 条件表达式;
+		delete from 表名;
+匹配条件:
+	=   #相等
+	!=   #不等
+	is null   #匹配空
+	is not null #非空
+	or      #逻辑或
+	and     #逻辑与
+	!          #逻辑非
+	()          #提高优先级
+	in(值列表)     #在...里....
+	not in(值列表)   #不在...里...
+	between 数字1 and 数字2    #在...之间...
+	distinct 字段名        #去重显示
+模糊查询:
+	where 字段 like '通配符'
+	_匹配单个字符   %匹配0~N个字符
+	where 字段名 regexp '正则表达式'
+	
+运算:
+	select 1234 +-*/%	1234
+	加减乘除取余数
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
