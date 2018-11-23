@@ -42,7 +42,10 @@ MySQL主从同步:
 	主机名-relay-bin.xxxxxx  #中继日志
 	主机名-relay-bin.index   #索引文件
 
-
+停止主从:
+	临时不同步:
+		stop slave;  #从服务器操作
+	
 
 
 
