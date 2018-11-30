@@ -1,0 +1,172 @@
+视图:
+	虚拟表,视图并不在数据库中存数据,数据来源与基表
+	对视图修改时,基表会变
+	对基表修改时,视图也会变
+	
+	创建:
+		create view v1 as select user,shell from t1
+		#创建v1表,让v1表里的内容显示为t1表中的user字段和shell字段
+	查看:
+		show table status;      #查看当前库所有表信息
+		show table status where comment='view'\G
+		#显示类型为view的表的信息
+	删除:
+		drop view v1 
+		#删除视图v1
+
+高级用法:
+	create view v2(a,b,c,d,e,f,) as select from tt1,tt2 where t1.name=t2.name;
+		创建v2表时,基表是tt1和tt2,但是这两个表中有重复字段,必须重新指定字段
+	create view v2 as select 
+	->a.user as t1name,    #把表a中的字段定义为t1name
+	->b.user as t2name,
+	->a.uid as t1uid,
+	->b.uid as t2uid
+	->from tt1 a left join tt2 b on a.user=b.user
+		#给tt1,tt2定义别名为a,b,同时以左连接为主
+   视图查询的具体方式
+    	ALGORITHM =		
+			MERGE        #替换方式(查询数据时只查一次)
+			TEMPTABLE    #具体化方式(查询数据时,先查询建表时的命令,再查询数据)
+			UNDEFINED    未定义(未定义时默认使用替换方式)
+   限制检查范围的选项:with check option
+	create view v1 as select * from a where uid < 10 with check option;
+	#设置为默认检查范围(CASCADED),修改的值只能小于10,同时要满足基表的限制
+	create view v2 as select * from v1 where uid >= 5 with local check option;
+	#设置检查范围为(LOCAL),修改的值必须>=5,不必满足基表的限制 
+
+存储过程:
+	创建存储过程的简单操作:
+		delimiter //     #改变分隔符号为"//"
+		create procedure p1()    #创建存储过程 p1()
+		->begin
+		->select * from testdb.t1 limit 3;    #查询t1的前三行
+		->create table if not exists testdb.t2 (id int);   #创建t2表
+		->end
+		->//
+		delimiter ;      #把分隔符号改回";"
+		call p1();     #调用p1()
+	查看已经创建过的存储过程:
+		select db,name,type from mysql.proc;     #查询所有函数和存储过程
+		select * from mysql.proc where name="p1"\G;   #查看创建的p1存储过程
+		select body from mysql.proc where name="p1"\G;
+		   #查看p1存储过程里面的代码的具体情况
+	删除存储过程:
+		drop procedure p1    #删除存储过程,后面不能带() 
+	
+
+
+变量:
+	全局变量
+	会话变量
+	用户变量
+	局部变量
+	
+	show session variables; #查看当前用户的会话变量
+	set session sort_buffer_size = 40000;  #修改当前用户的sort_buffer_size变量
+	show globa variables;  #查看全局变量
+	select @@hostname;  #查看全局变量hostname的值
+	set @name=ltx    #定义name变量的值为ltx
+	select @name      #显示变量name
+	declare x int default 9; #定义局部变量x,默认值为9,只能在存储过程中有效
+
+局部变量和存储过程详解:
+	delimiter //
+	create procedure testdb.p2()
+	->begin
+	->declare y int default 1;                  #定义一个y变量
+	->select count(id) into y from testdb.t1;   #把t1表中查到的集合赋值给y变量
+	->select y                                  #查询y的值
+	->end
+	->//
+	delimiter ;
+
+
+参数类型:
+	delimiter //
+	create procedure testdb.p2(in shellname char(30)) 
+	->begin
+	->declare y int default 1;                
+	->select count(name) into y from testdb.t1 where shell=shellname;   
+	->select y                                  
+	->end
+	->//
+	delimiter ;
+                  #定义y存储过程,在调用时可以自定义
+			call p2("/bin/bash")或者call p2("/sbin/nolgin")	
+
+	delimiter //
+	create procedure testdb.p2(in shellname char(30),out number int) 
+	->begin               
+	->select count(name) into number from testdb.t1 where shell=shellname;   
+	->select number                                  
+	->end
+	->//
+	delimiter ;
+		#定义输出变量,调用时需要输入占位符号
+			call p2("/bin/bash",@z)   #@z是占位符号,不会赋值
+	
+	delimiter //
+	create procedure testdb.p2(inout x char(30)) 
+	->begin
+	->select x;     
+	->select name into x from testdb.t1 where id=1;   
+	->select x;
+	->end
+	->//
+	delimiter ;
+ 		#定义inout变量,调用时需要使用已经赋值的变量当占位符
+			set @y="abc"
+			call testdb.t1(@y)    #@y是占位符
+
+
+算数运算:
+	 set @x=2+2
+	set @x=3-2
+	set @x=3*2
+	set @x=10/3  :3.33333    #带小数点的除法
+	set @x=10 DIV 3 :3       #不带小数点的除法
+	set @x=10%3 :1           #取余数
+
+判断语句和条件:
+   单分支 
+    	if 条件 then	
+	  命令的代码
+	end if;
+    双分支	
+	if 条件 then
+	  命令的代码
+	else
+	  命令的代码
+	end if;
+   while循环:
+	while 条件 do
+	    命令的代码
+	end while
+   loop死循环:
+	loop
+	   代码
+	end loop
+   repeat条件式循环:只有条件成立时终止循环
+	repeat
+		代码
+	until  条件
+	end repeat
+
+lb1:while      #给当前的while循环,起一个名字
+      ITERATE lb1      #跳过lb1的循环
+	LEAVE lb1        #中断lb1的循环
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -15,7 +15,7 @@ mysql 聚集函数
 	limit N;    #显示n行
 	limit N,M;   #显示以第n-1行开始,显示m行
 	where 条件 limit 3;   #显示前三行
-	where 条件 limit 3,3;   #显示第四行到第七行
+	where 条件 limit 3,3;   #显示第行
 
 查询结果的过滤:
 	having 条件表达式;

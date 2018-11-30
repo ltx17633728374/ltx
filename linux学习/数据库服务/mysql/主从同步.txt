@@ -1,0 +1,200 @@
+MySQL主从同步:
+	从数据库服务器自动同步主库上的数据到本机,实现数据的自动备份
+     主:接收客户端访问的数据库服务器
+     从:自动同步主数据库服务器上的数据到本机
+
+主服务器配置:
+	vim /etc/my.cnf
+		[mysqld]
+		server_id=51     #服务的id是51
+		log-bin=db51       #日志名字是db51
+		binlog_format="mixed"    #日志类型是记录命令和修改内容
+
+	grant replication slave on *.* to repluser@"%" identified by "123qqq...A";
+		#给repluser用户授权,让所有主机可以用这个用户来获取更新权限
+	select user,host from mysql.user where user="repluser";
+		#查询用户信息
+	
+从库配置
+	vim /etc/my.cnf
+		[mysqld]
+		server_id=52
+	show slave status;    #显示自己是不是从库
+	change master to master_host='192.168.4.51',   #主库地址
+	->master_user="repluser",        #登录主库的用户
+	->master_password="123qqq...A",   #连接主库的密码
+	->master_log_file="db51.000001",    #去主库用show master status查看名字
+	->master_log_pos=441;           #去主库用show master status查看偏移量 
+
+	start slave    #启动从库进程
+	show slave status\G;     #查看从库的信息
+		Slave_IO_Running: Yes
+		Slave_SQL_Running: Yes
+		Last_IO_Error   #如果IO线程报错,可以看到报错信息
+		Last_SQL_Error   #如果SQL线程报错,可以看到报错信息
+主从同步原理:
+	从服务器的I/O线程从主服务器拷贝binlog日志拷贝到本机的中继日志mysql2-relay-bin.000002
+	SQL线程会执行中继日志中的那些拷贝过来的命令
+	
+主库相关配置:
+	binlog_do_db=name       #设置Master对哪些库记日志
+	binlog_ignore_db=name    #设置Master对哪些库不记日志
+从库相关配置:
+	log_slave_updates           #记录从库更新,允许链式复制
+	relay_log=dbsvr2-relay-bin  #指定中继日志文件名 
+	replicate_do_db=mysql        #仅复制指定库,其他库将被忽略,可以设置多条
+	replicate_ignore_db=test      #不复制指定库
+从库的相关文件
+	master.info    #主库信息
+	relay-log.info   #中继日志信息
+	主机名-relay-bin.xxxxxx  #中继日志
+	主机名-relay-bin.index   #索引文件
+
+停止主从:
+	临时不同步:
+		stop slave;  #从服务器操作
+	永远不同步:
+		cd /var/lib/mysql
+		rm -rf master.info relay-log.info
+		rm -rf node2-relay-bin.*
+		systemctl restart mysqld
+
+
+主从同步结构:
+	一主一从:一个主服务器,一个从服务器
+	一主多从:一个主服务器,多个从服务器
+	主从从:主服务器的从服务器有它自己的从服务器
+	主主:互为主从 
+同步模式:
+	异步模式:主库执行了sql命令后就不关心从库有没有备份
+	全同步模式:保证所有从库都有备份
+	半同步模式:只要有一个从库备份了,就不会再继续备份
+	
+主从从结构:
+	主库:
+		vim /etc/my.cnf
+			[mysqld]
+			server_id=51
+			log-bin=master51
+			binlog_format="mixed"	
+	从库:
+		vim /etc/my.cnf
+			[mysqld]
+			log_slave_updates			
+			log-bin=master52
+			server_id=52
+			binlog_format="mixed"
+
+半同步复制模块:
+	查看是否允许动态加载模块:
+		show variables like 'have_dynamic_loading';
+	查看是否已经安装了模块
+		select plugin_name, plugin_status from 
+		->information_schema.plugins where plugin_name like '%semi%'
+	安装模块
+		install plugin rpl_semi_sync_master
+		->soname 'semisync_master.so';
+		install plugin rpl_semi_sync_slave
+		->soname 'semiync_slave.so';
+	启动模块
+		set global rpl_semi_sync_master=1
+		set global rpl_semi_sync_slave=1
+	查看是否启动
+		show variables like 'rpl_semi_sync_%_enabled';
+		
+	永久配置:vim /etc/my.cnf  
+		plugin-load = "rpl_semi_sync_master=semisync_master.so;rpl_semi_sync_slave=semisync_slave.so"
+rpl-semi-sync-master-enabled=1
+rpl-semi-sync-slave-enabled=1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

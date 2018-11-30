@@ -1,0 +1,210 @@
+配置集群:
+   配置master主节点(mysql51)
+	vim /etc/my.cnf
+	pluginload=
+	"rpl_semi_sync_master=semisync_master.so;rpl_semi_sync_slave=semisync_slave.so"
+	rpl-semi-sync-master-enabled=1   #开启动态加载插件
+	rpl-semi-sync-slave-enabled=1    #开启动态加载插件
+	log_bin=db51           #启动bin_log日志
+	binlog_format="mixed"    
+	server_id=51
+	
+
+	授权:
+	grant replication slave on *.* to repluser@"%" identified by "123qqq...A";
+
+  备用主节点:(mysql52,mysql53)
+	vim /etc/my.cnf
+	server_id=52/53
+	#skip-grant-tables
+	plugin-load=   #跟引号里的内容必须在一行
+	"rpl_semi_sync_master=semisync_master.so;rpl_semi_sync_slave=semisync_slave.so"
+	rpl-semi-sync-master-enabled=1
+	rpl-semi-sync-slave-enabled=1
+	log_bin=db52/53
+	binlog_format="mixed"
+	relay_log_purge=off     #关闭自动删除中继日志功能
+	
+	授权:
+	grant replication slave on *.* to repluser@"%" identified by "123qqq...A";
+
+  纯从库:(MySQL54,MySQL55)
+	vim /etc/my.cnf
+		[mysqld]
+		#skip-grant-tables
+		server_id=54/55
+		plugin-load="rpl_semi_sync_slave=semisync_slave.so"  
+		rpl-semi-sync-slave-enabled=1  #开启从库模块
+		relay_log_purge=off
+
+	指定主库:
+		change master to master_host='192.168.4.51',
+    		-> master_user='repluser',
+    		-> master_password='123qqq...A',
+    		-> master_log_file='db51.000001',
+    		-> master_log_pos=154;
+ 
+  集群配置:
+	装包:(提前下载依赖包)
+	yum -y install perl-*
+	cd mha-soft-student
+	yum -y install perl-*.rpm
+	yum -y install mha4mysql-node-0.56-0.el6.noarch.rpm 
+	在管理服务器装管理软件:
+	tar -zxvf mha4mysql-manager-0.56.tar.gz
+	cd mha4mysql-manager-0.56/
+	perl Makefile.PL     #编译
+	make && make install
+    集群配置:
+	进入源码目录包之后:
+	cd samples/conf
+	mkdir /etc/mha
+	cp app1.cnf /etc/mha
+	vim /etc/mha/app1.cnf
+		[server default]
+		manager_workdir=/etc/mha/app1    #配置文件存放位置
+		manager_log=manager.log
+		master_ip_failover_script=/usr/local/bin/master_ip_failover
+			#指定脚本位置
+		ssh_user=root
+		ssh_port=22
+		repl_user=repluser          #定义监视用户
+		repl_password=123qqq...A    #用户密码
+		user=root                   #连接用户(需要在3个主服务器上创建)
+		password=123qqq...A         #连接密码
+		
+		[server1]
+		hostname=192.168.4.51     #主服务器1
+		candidate_master=1        #设为竞选服务器
+		port=3306
+		[server2]
+		hostname=192.168.4.52      
+		candidate_master=1
+		port=3306
+		
+		[server3]
+		hostname=192.168.4.53
+		candidate_master=1
+		port=3306
+		
+		[server4]
+		hostname=192.168.4.54     #从服务器
+		no_master=1               #不参加竞选
+		port=3306
+		[server5]
+		hostname=192.168.4.55
+		port=3306
+		no_master=1
+
+	拷贝自定义脚本到管理工具配置文件目录下:
+		cp /root/mha-soft-student/master_ip_failover \
+		--> /etc/mha/master_ip_failover
+		vim /etc/mha/master_ip_failover
+		在35行添加 
+			my $vip = '192.168.4.100/24';
+			my $key = "1";
+			my $ssh_start_vip = "/sbin/ifconfig eth0:$key $vip";
+			my $ssh_stop_vip = "/sbin/ifconfig eth0:$key down";
+	
+	在主服务器添加授权:(会自动同步)
+		grant all on *.* to root@'%' identified by '123qqq...A';
+
+	把当前vip地址绑定到主库:
+		ifconfig eth0:1 192.168.4.100
+在管理服务器测试:
+	masterha_check_ssh --conf=/etc/mha/app1.cnf
+	masterha_check_repl --conf=/etc/mha/app1.cnf
+
+启动管理服务
+masterha_manager --conf=/etc/mha/app1.cnf --remove_dead_master_conf --ignore_last_failover
+							#当主服务器死掉时,会删除相关配置  #忽略XXX.health文件
+
+停止服务:
+	master_stop --conf=/etc/mha/app1.cnf	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

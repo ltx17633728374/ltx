@@ -56,10 +56,10 @@ MySQL锁:
 	commit;   #数据提交
 
 数据导入:
-	load data infile "目录名/文件名"
-	into table 表名
-	fields terminated by "分隔符"
-	lines terminated by "\n"
+	load data infile "默认路径下的文件名"
+	->into table 表名
+	->fields terminated by "分隔符"
+	->lines terminated by "\n"
     注意:
 	字段分隔符要与文件内一致
 	指定导入文件的绝对路径
@@ -74,7 +74,7 @@ MySQL锁:
               #把默认寻找的路径改为/mydata
 
 数据导出:
-	select * from user into outfile "目录名/文件名"
+	select * from user into outfile "目录/文件名"
 	fields terminated by "分隔符"
 	lines terminated by "\n";
 

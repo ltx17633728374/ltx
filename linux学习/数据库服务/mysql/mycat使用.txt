@@ -1,0 +1,213 @@
+分库分表类型:
+	纵向切分:
+		将单个表的数据,拆分成多个表,按类别存入不同数据库
+	横向切分:
+		按表中字段的规则,把表中的数据按行切分,分散到不同数据库
+mycat:
+	支持mysql,Oracle.mongodb,实现读写分离,服务器高可用,数据分片
+     分片规则:
+	枚举 sharding-by-intfile
+	固定分片rule1
+	范围约定auto-sharding-long
+	求模法mod-log
+	日期列区分法sharding-by-date
+	通配取模sharding-by-pattern
+	ASCII码求摸通配sharding-by-prefixpattern
+	编程指定sharding-by-substring
+	字符串拆分hash解析sharding-by-stringhash
+	一致性hash :sharding-by-murmur
+
+安装mycat:(需要提前配置JDK)
+	tar -zxvf Mycat-server-1.4-beta-20150604171601-linux.tar.gz 
+    目录结构:
+	-bin         #mycat命令
+	-catlet      #扩展功能
+	-conf        #配置文件
+	-lib         #mycat使用的jar
+	-log         #启动和运行日志文件
+	-wrapper.log  #服务日志文件
+	-mycat.log     #记录sql脚本执行后的报错内容
+     文件及文件内容标签:
+	-server.xml    #设置mycat的账号信息
+	-schema.xml    #配置mycat的真实库表
+	-rule.xml      #定义mycat分片规则
+	
+	server.xml文件的修改:
+		vim /usr/local/mycat/conf/server.xml
+		<user name= "test" >      #连接mycat的用户名
+		  <property name="password">123456</property>   #连接密码
+		  <property name="schemas">TESTDB</property>    #客户端能看到库名
+	   <!-- <property name="readOnly">ture</property> -->  #把只读权限注释掉		
+		</user>
+		 
+
+
+	rule.xml的了解:
+		<!-- ..... -->     #在文件中表示注释标签内的内容
+		<tableRule> .... </tableRule>   #一个开闭就是一个规则
+		<rule> ... </rule>               #开闭内是算法名称 
+		<function> ...</function>        #一个开闭就是一个函数
+	
+		
+	schema.xml文件修改:
+		vim /usr/local/mycat/conf/server.xml
+ 		<schema> ... </schema>    #一个容器
+		<table> ... </table>      #定义能看到的表(dataNode的意思是节点名称)
+		<dataNode name=... datahost=... database=.../>  #配置一个节点(database后面的数据库名必须真实存在)
+		<dataHost> ... </dataHost>    #定义一个数据主机
+		<writeHost> ...url="192.168.4.54:3306" user=... password=...</writeHost>
+			#url跟的是分片主机的IP地址,user后面跟的用户必须存在且有写入权限
+
+
+分片数据库需要修改配置:
+	vim /etc/my.cnf
+	[mysqld]
+	lower_case_table_names = 1     #让数据库不区分表名大小写
+	
+启动mycat软件:
+	/usr/loca/mycat/bin/mycat start    #启动
+	ss -nutlp | grep :8066    #显示有没有启动
+
+客户端连接mycat:
+	mysql -hmycat的IP地址 -P端口 -u用户 -p密码
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

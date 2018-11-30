@@ -1,0 +1,64 @@
+三大硬件
+	查看cpu使用:
+		top      #查看详细信息
+		uptime   #查看总体信息
+	查看内存:
+		free
+	查看硬盘:
+		iostat
+
+调整配置:
+	show variables;     #查看变量
+	show status;        #查看状态
+	flush status        #刷新状态
+	show processlist     #查看连接状态
+	show status Max_use_connections=...       #查看曾经的最大连接数
+	set global max_connections=...         #曾经最大连接数/最大连接数=85%
+	connect_timeout                        #连接超时时间
+	wait_timeout                           #等待执行操作超时时间
+	key_buffer_size                        #设置索引缓存
+	sort_buffer_size				  #设置排队缓存
+	read_buffer_size				  #加速处理全表查询的速度
+	thread_buffer_size  			   #调大这个参数可以多保留一些用过的线程,如果线程数量没有超过设定值,就不用新开
+	table_open_cache 				   #设置缓存的表的数量
+
+    查询优化:
+	show varianles like "%query%"    #查询包含缓存的变量
+	query_cache_size    #查询缓存大小
+	query_cache_type     #查询缓存的开启情况(关闭/自动把查询结果放入缓存/不自动放入)
+	query_cache_wlock_invalidate   #当查询的同时,表内容被修改时,不会从缓存中取数据
+	show global status like "%qcache%"    #查询包含查询的变量
+	Qcache_hits                 #如果查询的数据是在查询缓存里找到的,那么此值加1
+	Qcache_inserts               #只要服务器接收一次查询请求,此值加1
+    查询日志和慢查询日志:
+	启动日志,配置文件中写入general-log    #启动查询日志
+	general-log-file=                  #指定查询日志的文件
+	slow-query-log                     #启动慢查询(记录耗时长或者不用索引的查询操作)
+	slow-query-log-file                 #指定慢查询日志文件
+	long-query-time                     #超时时间
+	long-queries-not-using-indexes      #记录未使用索引的查询
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
