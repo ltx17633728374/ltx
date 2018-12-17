@@ -1,0 +1,79 @@
+集群的配置:
+	所有主机必须要安装redis软件
+		软件安装后,更改配置文件(所有主机)
+		vim /etc/redis/6379.conf
+		70 行 192.168.4.50(或51-56)
+		815 行 cluster-enabled yes                            #开启集群
+		823 行 cluster-config-file nodes-6379.conf            #指定文件信息    
+		829 行 cluster-node-timeout 5000                      #指定超时时间
+		
+		/etc/init.d/redis_6379 restart                       #重启服务(更改脚本)
+		ss -nutlp | grep redis-server                        #查看是否开启
+		cat /var/lib/redis/6379/nodes-6379.conf              #查看是否存在配置文件
+
+		redis-cli -h 192.168.4.52                            #进入数据库
+		>cluster info                                        #查看集群信息 
+          	>cluster nodes                                       #查看集群节点信息
+	
+	配置主集群:(mysql51)
+		yum -y install ruby rubygems                          #redis自带的安装集群的脚本是ruby语言写的
+		yum -y install ruby-devel-2.0.0.648-30.el7.x86_64.rpm  #安装依赖
+		gem install redis-3.2.1.gem                           #安装gem的包
+		ln -s /root/redis-4.0.8/src/redis-trib.rb /sbin/redis-trib.rb
+			#把默认脚本做个软连接
+		redis-trib.rb create --replicas 1 \                   #创建集群(replicas 1 的意思是一个主库配置一个从库)
+		> 192.168.4.51:6379 192.168.4.52:6379 192.168.4.53:6379 \
+		> 192.168.4.54:6379 192.168.4.55:6379 192.168.4.56:6379
+		redis-cli -c -h IP -p 端口                               #连接主库(连接哪个都一样,此集群为分布式存储)
+	给已经配置好的集群添加主机:
+		redis-trib.rb 选项 参数
+				--add-node               #添加master主机
+				--check                  #检测集群
+				--reshard                #重新分片
+				--add-node --slave       #添加slave主机
+				--del-node 	             #删除主机
+		
+		redis-trib.rb add-node 192.168.4.57:6379 192.168.4.51:6379
+			         #添加master节点57
+		redis-trib.rb reshard 192.168.4.51:6379
+				#给集群重新分片(均匀分配4096,先填写要添加主机的ID,再写all)
+		redis-trib.rb add-node --slave 192.168.4.58:6379 192.168.4.51:6379
+				#添加slave节点,未指定master时.会选择没有slave的master分配
+				#指定master时,slave选项后面跟[--master-id id值]
+		 
+	移除主机:
+		先移除slave:
+		redis-trib del-node 192.168.4.51:6379 fa3debcd574bd5ff2cec51b27e298234efa2503d
+					   #拥有工具的主机			#ID值							
+		移除master
+		redis-trib.rb reshard 192.168.4.51:6379  #先移除hash值
+			#重新分片(移除4096,先填写要给予hash值的主机,再指定要移除hash值的主机)
+		redis-trib.rb del-node 192.168.4.51:6351 acf2235bd4bf154c29507dcbb94528904be0f80c
+									#ID值		
+	把移除的主机添加回去
+		进入主机的redis数据库:
+			>cluster reset        #移除自己的集群信息
+		重复添加的操作 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,146 @@
+使用GPG对称加密方式保护文件:
+     方式一:      
+	yum -y install gnupg2    #安装软件
+	gpg --version            #查看版本
+	gpg -c 1.txt             #使用gpg加密(需要输入自定义密码)
+	cat 1.txt.gpg            #查看加密数据为乱码
+	gpg -d 1.txt.gpg > 2.txt #解密后存为2,.txt(解密时需要输入密码)
+     方式二:
+	gpg --gen-key            #创建密钥对
+	
+	请选择您要使用的密钥种类：
+   	(1) RSA and RSA (default)                   #默认算法为RSA
+   	(2) DSA and Elgamal
+   	(3) DSA (仅用于签名)
+   	(4) RSA (仅用于签名)
+	您的选择？                                              #直接回车默认(1)
+	RSA 密钥长度应在 1024 位与 4096 位之间。
+	您想要用多大的密钥尺寸？(2048)                         #接受默认2048位
+	您所要求的密钥尺寸是 2048 位
+	请设定这把密钥的有效期限。
+         0 = 密钥永不过期
+      <n>  = 密钥在 n 天后过期
+      <n>w = 密钥在 n 周后过期
+      <n>m = 密钥在 n 月后过期
+      <n>y = 密钥在 n 年后过期
+	密钥的有效期限是？(0)                                          #接受默认永不过期
+	密钥永远不会过期
+	以上正确吗？(y/n)y                                   #输入y确认
+
+	gpg --list-keys     #查看公钥环
+	gpg -a --export a > a.pub    #--export是导出密钥, -a的作用是导出密钥存为ASCII格式
+	scp a.pub 192.168.4.74:/tmp/   #将密钥传给其他主机
+	其他主机操作:gpg --import /tmp/a.pub   #导入密钥
+			gpg -e -r a 1.txt     #使用密钥a加密1.txt
+			scp 1.txt.png 192.168.4.75:/root    #传文件给私钥主机
+	gpg -d 1.txt.png > 1.txt    #使用私钥解密
+	
+使用gpg签名,检查数据来源的正确性:
+	tar zcf log.tar /var/log    #建立测试软件包
+	gpg -b log.tar              #创建分离式数字签名
+	scp log.tar* 192.168.4.5:/root  #将签名文件与签名传给其他主机
+	gpg --verify log.tar.sig log.tar   #验证这个密钥的签名信息
+
+使用AIDE做入侵检测:
+	部署:yum -y install aide    
+	修改配置:
+		vim /etc/aide.conf
+
+		@@define DBDIR /var/lib/aide               #数据库目录
+		@@define LOGDIR /var/log/aide                        #日志目录
+		database_out=file:@@{DBDIR}/aide.db.new.gz                #数据库文件名
+		                                
+	#以下内容为可以检查的项目（权限，用户，组，大小，哈希值等）
+		#p:      permissions
+		#i:      inode:
+		#n:      number of links
+		#u:      user
+		#g:      group
+		#s:      size
+		#md5:    md5 checksum
+		#sha1:   sha1 checksum
+		#sha256:        sha256 checksum
+		DATAONLY =  p+n+u+g+s+acl+selinux+xattrs+sha256
+	#以下内容设置需要对哪些数据进行入侵校验检查
+	#注意：为了校验的效率，这里将所有默认的校验目录与文件都注释
+	#仅保留/root目录，其他目录都注释掉
+			/root   DATAONLY
+		#/boot   NORMAL         #对哪些目录进行什么校验
+		#/bin    NORMAL
+		#/sbin   NORMAL
+		#/lib    NORMAL
+		#/lib64  NORMAL
+		#/opt    NORMAL
+		#/usr    NORMAL
+		#!/usr/src            #使用[!]，设置不校验的目录
+		#!/usr/tmp
+	
+	aide --init      #生成效验数据库,数据存在/var/lib/aide/aide.db.new.gz
+	cd /var/lib/aide/     #到达效验数据库
+	mv aide.db.new.gz aide.db.gz   #把曾经生成的效验文件改名
+	aide --check                   #检测数据的变化
+
+扫描与抓包:
+	扫描工具:yum -y install nmap    
+	   nmap [扫描类型] [选项] <扫描目标..>
+			-sS   #tcp,syn扫描(半开)
+			-sT	#tcp连接扫描(全开)
+			-sU	#udp扫描
+			-sP	#icmp扫描
+			-A	#目标系统全面分析
+	 nmap -sP  192.168.4.100     #检查是否ping通
+	 nmap -n -sP  192.168.4.100  #不使用DNS解析
+	 nmap  -n  -sP  192.168.4.0/24  #检查网段哪些主机可以ping通
+	 nmap -sT 192.168.4.100         #检查目标主机的tcp服务
+	 nmap -p 21-22 192.168.4.0/24   #检查网段内主机,哪些可以有ssh,ftp
+	 
+	抓包工具:tcpdump命令
+		tcpdump -A host 192.168.4.5 and tcp port 21   #进入抓包状态
+		   监控选项如下:			
+			-i   指定监控的网络接口(默认监听第一个网卡)
+			-A   转换为ACSII码,方便阅读
+			-w   将数据包信息保存到指定文件
+			-r   从指定文件读取数据包信息
+	   	   tcpdump的过滤条件:
+			类型:host,net,port,portrange
+			方向:src,dst
+			协议:tcp,udp,ip,wlan,arp....
+			多个条件组合:and,or,not
+		tcpdump  -A  -w  ftp.cap  \            #抓包并保存
+		> host 192.168.4.5  and  tcp  port  21 
+		
+	tcpdump  -A  -r  ftp.cap | egrep  '(USER|PASS)'    #分析数据包
+
+	echo "dG9tOjEyMzQ1Ng==" | base64 -d    #抓到nginx的包,密码是编码的,解码之后是明文
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

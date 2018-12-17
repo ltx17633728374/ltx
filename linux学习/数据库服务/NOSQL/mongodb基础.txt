@@ -1,0 +1,112 @@
+安装mongodb:(不用安装,解压后建几个文件夹就能用)
+	mkdir /usr/local/mongodb
+	tar-xf mongodb-linux-x86_64-rhel70-3.6.3.tgz
+	cp -r mongodb-linux-x86_64-rhel70-3.6.3/bin /usr/local/mongodb/
+	cd /usr/local/mongodb/
+	mkdir -p etc log data/db
+   手动创建配置:
+	vim /usr/local/mongodb/etc/mongodb.conf
+		dbpath=/usr/local/mongodb/data/db/      #数据库目录
+		logpath=/usr/local/mongodb/log/mongodb.log  #指定日志位置
+		logappend=true                    #追加方式记录日志
+		fork=true                          #守护进程方式运行
+   启动服务	
+	ln -s /usr/local/mongodb/bin/* /sbin/    #把命令设置默认命令
+	mongod -f /usr/local/mongodb/etc/mongodb.conf  #启动服务
+   连接
+	mongo       #默认本地连接
+	>show dbs   #显示已有的库
+	>db         #查看当前库
+	>exit       #退出
+   停止服务
+	mongod --dbpath=/usr/local/mongodb/data/db --shutdown #指定目录才能停止
+	
+修改配置文件
+	vim /usr/local/mongodb/etc/mongodb.conf
+	bind_ip=192.168.4.51   #指定ip
+	port=27077             #指定端口
+   再次启动服务
+   连接方式已经改变
+	mongo --host 192.168.4.51 --port 27077     #成功
+
+mongodb
+  命令:
+	show dbs	 #查看已有的库
+	db            #显示当前库
+	use 库名           #切换库
+	show collections   #查看库下集合
+	show tables        #查看库下表
+	db.dropDatabase()   #删除当前所在库
+	db.集合名.drop()     #删除集合
+	db.集合名.save({","})    #创建集合.
+	db.集合名.find()         #查看集合内容
+	db.集合名.findOne()     #查看第一行
+	db.t1.find({name:"xm"})   #带条件的查询
+	db.t1.count()            #查看集合没数据总和
+	db.t1.remove({name:"abc"})  #删除匹配的数据
+	db.t1.remove({})            #删除所有
+	db.t1.insert({})            #插入记录
+   名称规范:(数据库)
+	不能是空字符串,不得含有''(空格),.,$,/,\0(空字符)
+	应全部小写,最多64字节
+   名称规范:(集合管理)
+	不能是字符串"",不能含有\0字符(空字符),此字符表示集合的结尾,不能
+	以"system."开头,这是为系统集合保留的前缀,用户创建的集合名字不能含有保留字符
+  数据类型
+	null表示空值或者不存在的字段:
+		db.t1.save({name:"a",work:null})
+	布尔值:true和false
+		db.t1.save({name:"a",marry:"true"})
+	数值:默认为64位浮点型数值,整型使用Numberlnt(4字节)或Numberlong(8字节)
+		db.t1.save({name:"a",money:222.22})
+	字符串:utf-8字符串
+		db.t1.save({name:"哈哈",woker:null})
+	日期:被存储为自新纪元依赖经过的毫秒数.不存储时区
+		db.t1.save({name:"a",worktime:new Date()})
+	正则表达式:
+		db.t1.save({procname:"php",code:/abc$/})
+	数组:数据列表或者数据集
+		db.t1.save({name:"a",grilfriend:["lili","xixi"]})
+	内嵌文档:文档可以嵌套文档,被嵌套的作为值
+		db.t1.save({book:{zuozhe:"dmy",name:"yunwei",money:69}})
+	对象id:对象id是12字节的字符串,是文档的唯一标识
+		db.t1.save({stunum:ObjectId(),name:"a",class:"nsd"})
+	二进制数据:任意字节的字符串,可以存代码
+		db.t1.save({lname:"html",codecript:function(){/*<html><h1>abc</h1></html>*/}})
+数据备份和恢复:
+     备份
+	mongodump --host  192.168.4.51 --port 27077
+	#不指定情况下,备份所有,且生成dump文件
+	bsondump dump /ddsdb/t1.bson   #查看bson文件内容
+	mongodump --host 192.168.4.51 --port 27077 -d ddsdb -o /root/bbsdb
+	#-d备份的库名,-o指定备份的目录,备份bbsdb库的所有到/root/bbsdb目录下
+	mongodump --host 192.168.4.51 --port 27077 -d ddsdb -c t1 -o /root/bbsdb
+	#只备份ddsdb里的t1表
+     恢复:
+	mongorestore --host 192.168.4.51 --port 27077 -d ddsdb /root/bbsdb
+	#从指定/root/bbsdb目录下恢复数据
+
+数据导入和导出:
+     数据导出	
+	mongoexport --host 192.168.4.51 --port 27077 \
+	>-d ddsdb -c t1 -f name --type=csv -o /root/lig1.csv
+	#导出csv格式,必须指定导出的字段名,导出name字段
+	mongoexport --host 192.168.4.51 --port 27077 \
+	>-d ddsdb -c t1 -q '{name:"bob"}' \
+	>-f name,age --type=csv -o /root/lig2.csv
+	#从ddsdb的t1表中导出名字为bob的name字段和age字段
+	mongoexport --host 192.168.4.51 --port 27077 \
+	>-d ddsdb -c t1 ---type=json -o /root/lig3.json
+	#导出json格式
+	mongoexport --host 192.168.4.51 --port 27077 \
+	>-d ddsdb -c t1 -f name --type=json \
+	>-o /root/lig4.json
+	#指定列名导出,导出name字段
+    数据导入
+	mongoimport --host 192.168.4.51 --port 27077 -d ddsdb -c t1 --type=json /root/lig3.json
+		#用json格式导入时表里不能有数据
+	mongoimport --host 192.168.4.51 --port 27077 -d ddsdb -c t1 --headerline \
+	>--type=csv /root/lig1.csv
+		#用csv格式时表里可以有数据,但是必须指定文件列名,--headerline可以去掉文件标题name
+
+

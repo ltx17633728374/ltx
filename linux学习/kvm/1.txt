@@ -1,0 +1,49 @@
+新命令:chronyc sources -v     #显示时间同步是否成功
+	ps -efww              #显示所有进程的全部信息
+	grep -C
+		-B
+		-A
+
+
+
+
+
+
+
+虚拟机:
+	配置文件:/etc/libvirt/qemu
+	磁盘镜像文件:/var/lib/libvirt/images
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

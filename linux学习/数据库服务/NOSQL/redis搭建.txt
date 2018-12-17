@@ -1,0 +1,97 @@
+关系型数据库:RDBMS
+	按照预先设置的组织结构,将数据库存储在物理介质上,数据之间可以做关联操作
+非关系型数据库:NOSQL
+	不需要预先定义数据库存储结构,表的每条记录都可以有不同的类型和结构
+
+
+redis搭建:(远程字典服务器)
+	yum -y install gcc gcc-c++	
+	tar -zvxf redis-4.0.8.tar.gz
+	cd redis-4.0.8
+	make && make install
+  配置和初始化:
+	./utils/install_server.sh        #运行初始化脚本(全部默认)
+	/etc/init.d/redis_端口号   start    #启动服务
+	/etc/init.d/redis_端口号   stop     #停止服务
+	/etc/init.d/redis_端口号    status  #查看信息
+	ss -antulp | grep :6379           #查看服务有没有成功运行
+	redis-cli                         #进入数据库
+
+  使用redis:
+	set test 123      #给test设置值为123
+	get test          #查看变量test的值
+	del test          #删除test变量
+	keys *              #查看所有变量
+	keys a?             #查看以a开头,长度为2的变量
+	exists test        #查看test变量是否存在
+	select [0-15]      #切换库0-15
+	type test          #查看变量类型(test是字符类型)
+	ttl test            #查看变量的过期时间
+	expire test 10      #设置变量有效期为10s
+	flushall           #删除全部数据
+	flushdb 		 #删除当前库的所有数据
+	save                #立刻把数据保存至硬盘
+	move test 1          #把test变量移到1库
+	shutdown             #关闭redis(自动写数据到硬盘)
+
+配置文件:
+    连接配置
+	port 6379                          #端口号为6379
+	bind 127.0.0.1 192.168.4.50        #ip地址(添加本机eth0口)
+	tcp-backlog 511                    #tcp连接总数(已经连接和正在连接)
+	timeout 0                          #连接超时时间(0是不限制)
+	tcp-keepalive 300                  #长连接时间(每隔300秒检查一次)
+	daemonize yes                      #守护进程方式运行`
+	databases 16                       #数据库个数
+	logfile /var/log/redis_6379.log    #pid文件
+	maxclients 10000                   #并发连接数
+	dir /var/lib/redis/6379	          #数据库目录  
+     内存配置:
+	volatile-lru                       #最近最少使用(设置了ttl)
+	allkeys-lru                        #删除最少使用的key     
+	volatile-random                    #在设置了ttl的key里随机删除     
+	allkeys-random                     #随机移除key       
+	volatile-ttl                       #删除最近过期的key      
+	noeviction                         #不删除,写满报错          
+	maxmemory <bytes>                  #最大内存            
+	maxmemory-policy noeviction        #定义使用策略         
+	maxmemory-samples 5                #选取模板数据的个数              
+修改配置文件:
+	vim /etc/redis/6379.conf
+	501行:requirepass 123456            #客户端连接时需要密码(连接时加-a)
+	
+
+lnmp+redis
+	phpredis /usr/lib64/php/modules/
+
+
+	配置lnmp服务,并让nginx可以支持php网页
+	yum -y install php-common
+	yum -y install autoconf automake
+	yum -y install php-devel-5.4.16-42.el7.x86_64.rpm
+	yum -y install php
+	tar -zxf php-redis-2.2.4.tar.gz
+	cd phpredis-2.2.4/
+	/usr/local/phpize      #检查php是不是搭好
+	./configure -with-php-config=/usr/bin/php-config 
+	make && make install        #装完后路径会显示出来,记下路径
+	vim /etc/php.ini
+	728行:extension_dir = "安装完成之后的那个路径"
+	730行:extension = "redis.so"        #redis.so就是访问redis的模块
+	systemctl restart php-fpm
+	php -m | grep -i redis            #查看是否支持redis
+	
+    写脚本访问远程redis服务器:
+	vim /usr/local/nginx/html/link.php
+	<?php
+	$redis = new redis();                       #新建连接
+	$redis->connect('192.168.4.50',6379);       #连接地址和端口
+	$redis->auth("123");                        #连接密码      
+	$redis->set('redistest','6666');            #添加变量和变量值
+	echo $redis ->get('redistest');             #显示变量
+	?>
+
+
+
+
+

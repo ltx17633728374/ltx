@@ -1,0 +1,123 @@
+iptables 基本管理
+	yum -y install iptables-services    #装完这个包可以永久保存规则
+	
+	4个表:nat表（地址转换表）、filter表（数据过滤表）、raw表（状态跟踪表）、mangle表（包标记表）
+	5个链:
+		INPUT链（入站规则）
+		OUTPUT链（出站规则）
+		FORWARD链（转发规则）
+		PREROUTING链（路由前规则）
+		POSTROUTING链（路由后规则）
+
+	基本操作:iptables  [-t 表名]  选项  [链名]  [条件]  [-j 目标操作]
+		iptables  -t  filter  -I  INPUT -p  icmp  -j  REJECT
+			#给filter表中加入站规则,协议是tcp,操作是拒绝
+	    #操作类型: ACCEPT：允许通过/放行
+			DROP：直接丢弃，不给出任何回应
+			REJECT：拒绝通过，必要时会给出提示
+			LOG：记录日志，然后传给下一条规则
+	常用命令:
+		添加规则:-A追加到末尾位置
+			-I插一条规则到开头
+		查看规则:-L查看所有规则
+			-n以数字形式显示地址,端口
+			--line-numbers查看规则时显示序号
+		删除规则:-D删除链内指定序号的一条规则
+			-F删除所有规则
+		默认规则:-P为指定的链设置默认规则
+
+	iptables  -t  filter  -A  INPUT  -p tcp  -j  ACCEPT
+		#允许任何人使用tcp协议访问自己
+	iptables  -I  INPUT 2  -p  icmp  -j  ACCEPT
+		#插入filter表中的第二行,允许任何人使用icmp访问自己的主机
+	iptables  -L  INPUT  --line-numbers
+		#查看入站规则,并且显示行号
+	iptables  -D  INPUT  3
+		#删除第三条规则
+	iptables  -t  nat  -F
+		#删除nat表中第三条规则
+	iptables  -t  filter  -P  INPUT  DROP
+		#把默认规则改为DROP
+	
+	匹配规则:
+		协议匹配:-p 协议名称
+		地址匹配:-s 源地址, -d 目标地址
+		接口匹配:-i 接受数据的网卡, -o 发送数据的网卡
+		端口匹配:--sport 源端口号, --dport 目标端口号
+		icmp类型匹配:--icmp-type icmp类型
+	
+	iptables  -A  INPUT  -s 192.168.4.100  -j  DROP
+		#丢弃所有4.100发给本机的数据包
+	iptables  -A  INPUT -s  192.168.2.0/24  -j  DROP
+		#拒绝整个网段
+	iptables -A  INPUT -s  114.212.33.12  -p tcp --dport 22 -j  REJECT
+		#拒绝此ip通过tcp连接自己本机的ssh端口(改ip会失效)
+	
+路由转发:
+	echo 1 > /proc/sys/net/ipv4/ip_forward    #临时开启路由转发
+	echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf    #永久开启路由转发
+
+禁止ping:
+	iptables -I INPUT -p icmp -j DROP    #他人ping自己不通,自己也不能ping他人
+	iptables  -A  INPUT  -p icmp --icmp-type echo-request -j DROP
+		#自己可以ping他人,他人ping不通自己
+	iptables -p icmp --help    #查看帮助
+
+扩展规则:
+	iptables -A INPUT -p tcp --dport 22\
+	> -m   mac --mac-source 52:54:00:00:00:0b -j DROP
+		#根据mac地址拒绝对方通过ssh访问自己
+	iptables  -A  INPUT  -p tcp   \
+	> -m  multiport --dports  20:22,25,80,110,143,16501:16800  -j  ACCEPT
+		#一次开启多个端口,(端口连续用":",不连续用",")
+	iptables  -A  INPUT  -p tcp  --dport  22  \
+	> -m  iprange  --src-range  192.168.4.10-192.168.4.20   -j  ACCEPT
+		#允许这个网段的主机登录(--dst-range和--src-range一致)
+	
+配置snat
+	iptables -t nat -A POSTROUTING \
+	> -s 192.168.4.0/24 -p tcp --dport 80 -j SNAT --to-source 192.168.2.5
+		#设置规则,实现地址转换
+	tail /var/log/httpd/access_log  
+		#查看地址时可以发现,4网段的主机访问2网页时会伪装成2.5
+	iptables  -t  nat  -A POSTROUTING \
+	> -s  192.168.4.0/24 -p tcp --dport 80 -j MASQUERADE
+		#对于外网不固定ip,执行ip伪装
+永久规则保存:
+	service  iptables save
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

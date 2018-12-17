@@ -13,7 +13,7 @@
 	授权:
 	grant replication slave on *.* to repluser@"%" identified by "123qqq...A";
 
-  备用主节点:(mysql52,mysql53)
+  备用主节点:(mysql52,mysql53)(备用主节点也需要指定主库)
 	vim /etc/my.cnf
 	server_id=52/53
 	#skip-grant-tables
@@ -121,89 +121,6 @@ masterha_manager --conf=/etc/mha/app1.cnf --remove_dead_master_conf --ignore_las
 
 停止服务:
 	master_stop --conf=/etc/mha/app1.cnf	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -1,0 +1,196 @@
+mysql体系:
+	管理工具:命令,备份,恢复,安全,移植,集群
+	连接池:进程数限制、内存检查、缓存检查等
+	sql接口:用户通过 sql 客户端发过来的命令,由 sql 接口接收,sql 操作(DML 数据操作语言:查询、修改、升级
+数据等;DDL 数据定义语言:创建一个新的数据库、新的索引、删除一个用户等;存储过程、视图触发器
+	分析器:分析查询语句 事务处理 对象访问权限
+	优化器:优化访问路径 、 生成执行树
+	查询缓存:缓存查找过的数据,从系统划分出的物理内存
+	存储引擎:用于管理存储的文件系统,将逻辑结构转换为物理结构的程序;不同的存储引擎有不同的功能和存储方
+式
+	文件系统:物理存储设备
+存储引擎:
+	show engines;    #显示所有
+	修改默认存储引擎:
+		vim /etc/my.cnf
+		在mysql标题下写入想要修改的默认引擎:
+			default-storage-engine=myisam
+	alter table t3 engine=myisam     #修改已经存在的表的存储引擎
+	
+	myisam:
+		支持表级锁
+		不支持事务,事务回滚,外键
+	    文件:		
+		表名.frm  #此文件是存储表的结构
+		表名.myd   #此文件是表数据
+		表名.myi    #表里字段的排列信息
+	innodb:
+		支持行级锁定
+		支持事务,事务回滚,外键	
+	    文件:
+		表名.ibd    #表数据和表的索引信息
+		表名.frm   #表名和表结构		
+		ib_logfile,ibdata1     #事务日志文件:记录innodb的表所有的操作
+MySQL锁:
+	锁粒度:
+		表级锁
+		行级锁
+		页级锁:对整个页面加锁(页面就是MySQL管理数据的基本存储单位)
+	锁类型:
+		读锁:支持并发读
+		写锁:独占类型,上锁期间其他线程不许读.也不许写
+
+	show status;      #查看所有状态变量
+	show status like "%lock%"  #查看锁变量
+
+事务:连接服务器开始到断开的过程
+   特性:原子性:事务的整个操作是整体,全部成功或者全部失败
+	一致性:事务操作的前后,表中的记录没变化
+	隔离性:事务操作是相互隔离不受影响的
+	持久性:数据一旦提交,不可改变,永久改变表数据
+	
+	show variables like "%auto%"   #找到自动执行的变量
+	set autocommit=off;    #关闭自动提交功能
+	rollback;   #数据回滚
+	commit;   #数据提交
+库语言:
+	   ddl:create alter drop        数据定义语言
+	   dml:insert update delete     数据操作语言
+	   dcl:grant revoke             数据控制语言
+	   dtl:commit rollback savepoint 数据数据事务语言
+	
+
+
+mysql数据类型:
+	数值:
+		整型:   使用时加上unsigned即可使用无符号存储范围
+			tinyint 1字节 有符号范围-128~127 无符号范围 0~255 
+			smallint 2字节 有符号范围-32768~32767 无符号范围 0~65535 
+			mediumint 3字节 有符号范围-2^23~2^23-1 无符号范围 0~2^24-1
+			int 4字节 有符号范围-2^31~2^31-1 无符号范围 0~2^32-1 
+			bigint 8字节 有符号范围-2^63~2^63-1 无符号范围 0~2^64-1 
+		
+		浮点型:
+			单精度:float 4字节  2^32  使用:float(7,2) 总数7位,小数点2位
+			双精度:double  8字节
+	字符:
+		定长(长度不够会自动空格补齐)
+			char  255 字符
+		变长
+			varchar 65535 字符
+		大文本类型:
+			text/blob 大于65535字符使用
+	枚举:
+		enum(1,2,3):从1,2,3中选择一个
+		set(1,2,3):从中选择一个或者多个 
+		日期时间:
+		年 year yyyy范围1901-2155
+			year默认字段是四位,如果想变成两位:01~69时是2001~2069
+							70~99是1970~1999
+		时间:  time hhmmss    121212
+		日期: date yyyymmdd   20181111
+		日期时间:timestamp,datetime  (yyyymmddhhmmss)
+			timestamp 1970-01-01 -2038-1-19
+			datetime 1000-01-01 -9999-12-31
+
+数据库解析: 
+	DB:数据库
+	DBMS:数据库管理系统
+	DBS:即DB+DBMS,带有数据库并且整合了数据库管理软件的计算机系统
+数据库集合:
+	Oracle
+	DB2
+	SQL server
+	MySQL/MariaDB
+	Access
+	PostgreSQL
+	Sybase
+
+MySQL:适合中小型企业的关系型数据库服务软件
+	支持多种操作系统
+	支持多种编程语言,php,java,python,perl
+	可移植性强
+rpm -qa | grep -i mysql :查询所有包含MySQL字样的软件包
+	目录:
+		/var/lib/mysql
+	配置:
+		/etc/my.cnf
+	初始化密码:
+		cat /var/log/mysqld.lod | grep password
+	进入MySQL:
+		mysql -hloaclhost -uroot -p'password'
+
+mysql命令:
+	alter user root@"localhost" identified by "123qqq...A"; #改密码 
+		#密码要数字,字母,符号和大小写
+	show variables like "%password%";    列出密码变量
+	set global validate_password_policy=0;  把密码策略改成0(0是简单密码,1是要数字,字母,符号,2是要特殊符号,字典文件)
+	set global validate_password_length=6;   把密码长度改为6
+	可以把所有选项写进配置文件/etc/my.cnf,实现永久生效
+     
+	库的常见操作:
+		create database gamedb;  #可以字母数字下划线,不能纯数字,不能能特殊字符,不能用命令命名
+		select database(); #显示当前所在库
+		show tables;      #显示表格
+		drop database gamedb;    #删除库
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

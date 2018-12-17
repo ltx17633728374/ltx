@@ -1,0 +1,115 @@
+给账户设置有效期:
+	chage -l 账号名称        #查看账号的信息
+	chage -E 时间 账号名称   #设置账号的有效时间
+	chage -E 2015-12-1 qwer (故意设置过期后,账号本身不能登录,但是su可以登录)
+给密码设置有效期:
+	vim /etc/login.defs    
+		PASS_MAX_DAYS   99999        #最大有效期
+		PASS_MIN_DAYS   0            #最小有效期
+		PASS_WARN_AGE   7            #警告时间
+		PASS_MIN_LEN    5            #密码最小长度
+		UID_MIN                  1000    #最小uid
+		CREATE_HOME     yes              #是否创建家目录
+ 
+锁定和解锁账号:
+	passwd -l zhangsan      #锁定用户账号lock
+	passwd -S zhangsan      #查看状态
+	passwd -u zhangsan      #解锁用户账号
+
+修改tty登录的提示信息:(隐藏版本号)
+	vim /etc/issue         #删除原来的数据,写入自己想写的数据
+
+锁定分区:(数据盘,/boot盘,fire)
+	UUID=af5fa6cf-96e3-434a-ac1f-13920b47c343 /boot xfs defaults,noexec 0 0
+		#锁定了/boot分区(分区里所有命令,脚本都不能执行)
+	mount -o remount,noexec /boot  
+		#临时生效
+	/dev/vda3   /home    xfs   defaults,noatime  0  0
+		#不再更新修改文件的时间(不会再多占用内存)
+
+锁定文件:
+	lsattr      #显示文件隐藏属性
+	chattr +i a.txt  #锁定文件(不能改,不能删)
+	chattr -i a.txt  #解锁文件
+	chattr +a a.txt   #锁定后只能追加
+	chattr -a a.txt    #解锁文件
+
+sudo使用:
+	vim /etc/sudoers
+	asdf ALL=(ALL)  /usr/bin/systemctl      #只能执行系统systemctl命令
+	qwer ALL=(ALL)  /usr/bin/passwd [a-zA-Z]*,!/usr/bin/passwd root
+		#只能修改普通用户的密码,单独把root作为特例
+	%wheel ALL=(ALL)  ALL
+		#给wheel组的人授予权限
+
+	执行visudo命令添加日志
+		Defaults  logfile="/var/log/sudo"   #指定日志
+		
+ssh服务安全:
+	vim /etc/ssh/sshd_config
+	....
+	Protocol 2                 #ssh协议  
+	PermitRootLogin no         #禁止root远程(先把一个用户加入wheel组)
+	PermitEmptyPassword no     #禁止空密码登录
+	UseDNS no                  #不解析客户机地址
+	LoginGraceTime 1m          #登录限时
+	MaxAuthTries 3             #每次连接最多认证次数
+	...
+	AllowUsers zhangsan tom useradm@192.168.40/24    #定义账号白名单
+	##DenyUsers User1 User2                          #定义账号黑名单
+	##DenyGroup Group1 Group2                        #定义组黑名单
+	##AllowGroups Group1 Group2                      #定义组白名单
+	
+	如果使用密钥,需要禁用口令认证:
+		vim /etc/ssh/sshd_config
+		...
+		PasswordAuthentication no          #把yes改为no,可以禁用口令验证
+	
+	vim /etc/selinux/config
+		SELINUX=enforcing      #设置强制开启
+		SELINUXTYPE=targeted   #保护策略为保护主要的网络服务安全
+
+vsftpd服务的安全
+	vim /etc/vsftpd/vsftpd.conf
+	anonymous_enable=YES            #开启匿名访问
+	anon_upload_enable=YES		 #允许上传文件
+	anon_mkdir_write_enable=YES     #允许上传目录
+	
+selinux配置和加权:
+	touch /var/ftp/1.txt          #在ftp目录下直接创建文件
+	touch 2.txt
+	mv /root/2.txt /var/ftp/2.txt #移动别的文件到ftp目录下
+	
+	客户级访问ftp://192.168.4.1
+		只能看到1.txt,看不到2.txt
+	ls -Z /var/ftp
+	...public_content_t ...1.txt    #标签为公共
+	...admin_home_t...2.txt         #标签为管理员
+
+	chcon -t  public_content_t 2.txt   #把2的标签更改为为公共
+	或者 
+	chcon --reference=/var/ftp/1.txt /var/ftp/2.txt
+		#按1的标签,把2的标签改为1的标签
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

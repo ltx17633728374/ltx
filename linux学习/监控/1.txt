@@ -1,0 +1,147 @@
+ps: 查看进程树
+uptime :查看cpu使用状态
+free :查看内存
+swapon -s :查看swap分区的状态
+df -h :查看挂载信息
+ifconfig :查看网卡信息
+ss/netstat :查看端口信息
+ping :查看网络连接
+traceroute :追踪路由
+iostat :查看磁盘读写量
+
+配置zabbix:
+	nginx的配置要达标:
+		vim /usr/local/nginx/conf/nginx.conf
+		....
+		http{
+		....
+			fastcgi_buffers 8 16k;       #缓存php生成的页面内容,8个16k
+			fastcgi_buffers_size 32k;    #缓存php生产的头部信息
+			fastcgi_connect_timeout 300; #连接php的超时时间
+			fastcgi_send_timeout 300;    #发送请求的超时时间
+			fastcgi_read_timeout 300;    #读取请求的超时时间
+		.....
+		}
+	安装zabbix的依赖:
+		yum -y install net-snmp-devel curl-devel 
+		yum -y install libevent-devel-2.0.21-4.el7.x86_64.rpm
+		tar -xf zabbix-3.4.4.tar.gz       #解压源码
+		cd zabbix-3.4.4/
+		./configure --enable-server \            #安装服务端
+		>--enable-proxy \				    #安装代理相关软件
+		>--enable-agent \			   	    #部署被监控端
+		>--with-mysql=/usr/bin/mysql_config \     #配置MySQL文件路径
+		>--with-net-snmp \			     #允许zabbix通过snmp协议进行监控
+		>--with-libcurl				    #安装curl软件,让zabbix进行网页监控
+		make && make install
+		
+	安装数据库,并创建相应的库和用户:
+		create database zabbix character set utf8;       #创建zabbix库,并支持中文
+		grant all on zabbix.* to zabbix@'localhost' identified by 'zabbix';
+			#创建授权用户
+		cd /zabbix-3.4.4/database/mysql
+		mysql -uzabbix -pzabbix zabbix < schema.sql
+		mysql -uzabbix -pzabbix zabbix < images.sql
+		mysql -uzabbix -pzabbix zabbix < data.sql
+			#进入源码目录下,把相应的文件导入数据库
+		cd /zabbix-3.4.4/frontends/php/
+		cp -r * /usr/local/nginx/html/
+		chmod -R 777 /usr/local/nginx/html/*
+			#到源码目录下,把网页文件拷贝进nginx目录,并加权限
+	配置zabbix服务端:		
+		vim /usr/local/etc/zabbix_server.conf
+			DBHost=localhost                #数据库主机  
+			DBName=zabbix                   #设置数据名称
+			DBUser=zabbix                   #设置数据库账号
+			DBPassword=zabbix               #设置数据库密码
+			LogFile=/tmp/zabbix_server.log  #设置日志文件
+		zabbix_server    #启动服务
+		killall -9 zabbix_server     #关闭服务
+	监控本机的配置:
+		vim /usr/local/etc/zabbix_agentd.conf
+			Server=127.0.0.1,192.168.2.5       #允许哪些主机监控自己     
+			ServerActive=127.0.0.1,192.168.2.5 #允许哪些主机通过主动模式监控本机  
+			Hostname=zabbix_server             #设置主机名   
+			LogFile=/tmp/zabbix_server.log     #设置日志文件
+			UnsafeUserParameters=1             #是否允许自定义key
+		zabbix_agentd           #启动被监控端服务    
+		killall -9 zabbix_agentd   #关闭服务
+	初始访问:(根据报错信息来处理配置文件)
+		firefox http://192.168.2.5/index.php
+	获取报错信息来对应装包,改配置:
+		yum -y install  php-gd php-xml
+		yum install php-bcmath-5.4.16-42.el7.x86_64.rpm  
+		yum install php-mbstring-5.4.16-42.el7.x86_64.rpm
+		vim /etc/php.ini
+		date.timezone = Asia/Shanghai                #设置时区
+		max_execution_time = 300                    #最大执行时间，秒
+		post_max_size = 32M                        #POST数据最大容量(16M就够)
+		max_input_time = 300                        #服务器接收数据的时间限制
+		memory_limit = 128M                        #内存容量限制
+		
+		systemctl restart php-fpm     #更改php配置文件后,重启服务
+	再次访问:(根据图形化的提示操作)
+		firefox http://192.168.2.5/index.php
+
+配置zabbix被监控端:
+	client1/2操作: useradd -s /sbin/nologin  zabbix
+			yum -y install gcc pcre-devel
+			tar -xf zabbix-3.4.4.tar.gz 
+			cd zabbix-3.4.4/
+			./configure --enable-agent     #只装一个模块
+			make && make install 
+		vim /usr/local/etc/zabbix_agentd.conf
+		Server=127.0.0.1,192.168.2.5          #允许监控本机(被动模式)
+		ServerActive=127.0.0.1,192.168.2.5	 #监控本机(主动模式)
+		Hostname=zabbixclient_web1             #被监控端自己的主机名
+		EnableRemoteCommands=1                 #监控异常后,是否允许监控主机帮自己执行命令
+      	UnsafeUserParameters=1                 #启动被监控端服务
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

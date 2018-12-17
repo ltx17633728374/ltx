@@ -1,0 +1,122 @@
+单表:
+	create table a select * from b where false;
+	#复制a的表结构到b
+	alter table a rename to b
+	#把a改名为b
+升序排序/降序排序..默认是升序
+	select * id from t1 order by 字段名  asc/desc ;  
+#查询结果分组
+	select * id from t1 group by 字段名 
+		
+多表查询:
+	select 字段名列表 from 表a,表b;
+	  #查出来的东西是表a乘以表b(笛卡尔集)
+	select 字段名列表 from 表a,表b where 条件;
+	select t2.name,t3.name from t2,t3 where t2.uid = t3.uid;
+	#查询t2,t3表中uid相等的人的名字
+
+where子查询:
+	select name,uid from user2 where uid > (select avg(uid) from user2);
+		  #查询user2表里面uid大于平均值的人的名字          
+左连接查询
+	select 字段名列表 from 表b left join 表b on 条件表达式;
+	select * from t4 left join t5 on t4.uid=t5.uid
+		#显示t4,t5表中符号条件的显示出来(显示以表4为主的)
+右连接查询
+	select 字段名列表 from 表a right join 表b on 条件表达式;                          
+
+限制查询结果显示行数:
+	limit N;    #显示n行
+	limit N,M;   #显示以第n-1行开始,显示m行
+	where 条件 limit 3;   #显示前三行
+	where 条件 limit 3,3;   #显示第行
+增加表记录:
+	insert into 表名 values (字段值列表);
+		insert into 表名
+			values
+			(字段值列表),
+			(字段值列表);
+		insert into 表名(字段名列表) values (字段值列表);
+		insert into 表名 (字段名列表)
+			values 
+			(字段值列表),
+			(字段值列表);
+	   注意:
+		字段值要与字段类型相互匹配
+		对于字符类型的字段,要用双或单引号括起来
+		依次给所有字段辅助时,字段名可以省略
+		只给一部分字段赋值时,必须明确写出对应字段名称
+	更新表:
+		update 表名 set 字段1=字段1值,字段2=字段2值,字段n=字段n值;
+		update 表名 set 字段1=字段1值,字段2=字段2值,字段n=字段n值
+			where 条件表达式;
+	    注意:
+		字段值要与字段类型匹配
+		对于字符类型的字段,要用双或单引号括起来
+		若不使用where限定条件,会更新所有记录
+		限定条件时,只更新匹配条件的记录
+	删除表:
+		delete from 表名 where 条件表达式;
+		delete from 表名;
+查询表:
+	select 字段1, ..., 字段N from 表名;
+		select 字段1, ..., 字段n from 表名;
+			where 条件表达式;
+	     注意:
+		使用*可匹配所有字段
+		指定表名时,可采用 库名.表名 的形式
+
+
+表的增删改查:
+	create table studb.stuinfo(name char(10),age int);
+		#建表,两列,一列名字,一列年龄,名字是字符,年龄是数字
+	desc stuinfo; #查看表结构
+	desc mysql.user    #绝对路径查看表结构
+	drop table studb.stuinfo;  #删除表
+	insert into studb.stuinfo values("a",23),("b",23);
+		#在表中插入两行
+	insert into studb.stuinfo(name) values("c")
+		#在表中插入一行,名字为c,年龄不赋值
+	update studb.stuinfo set age=19 where name="a";
+		#改名字为a的年龄为19
+	update studb.stuinfo set age=18;
+		#把所有人的年龄改为18
+	delete from studb.stuinfo where name="b";
+		#删除名字为b的人
+	delete from studb.stuinfo;
+		#删除表的数据
+	create table t1 (id int) default charset=utf8 
+		#建表时指定编码格式为utf8,即可支持中文
+
+修改表结构:
+	alter table t4 add city char(10);   #向表中新建结构city
+	alter table t4 add city char(10) first; #在所有列的前面添加city列
+	alter table t4 add city char(10) after age;   #在age列的后面添加city列 
+   修改字段类型:
+	alter table t4 modify age tinyint not null default 25;   #把年龄的值改为不允许为空,必须要先加默认
+	alter table t4 modify age tinyint default 25 after name;  #把年龄列调到name后面
+	alter table t4 modify name  char(3);                         #把名字的数值调整为3
+  修改字段名字:
+	alter table t4 change name real_name char(3);         #把字段name改为real_name
+  删除字段:
+	alter table t4 drop age, drop name;        #删除表中的age列和name列
+
+修改表名:
+	cd /var/lib/mysql/studb
+	mv t4.frm table4.frm       #把表格t4改成table4.frm
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

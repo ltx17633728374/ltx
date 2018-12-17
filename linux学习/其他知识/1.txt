@@ -1,0 +1,216 @@
+1.linux系统的根目录下主要包括哪些文件夹,各自的作用是什么
+	/boot:存放Linux内核,引导配置等启动文件
+	/bin:存放最基本的用户命令,普通用户有权限执行
+	/dev:存放硬盘,键鼠,鼠标,光驱等各种设备文件
+	/etc:存放各种配置文件,配置目录
+	/home:存放普通用户的默认工作文件夹
+	/root:系统管理员的宿主目录
+	/sbin:存放最基本管理的命令,一般只能root用户执行
+	/usr:存放额外安装的应用程序,源码编译文件,文档等各种用户资料
+	/var:存放日志文件,用户邮箱目录,进程运行数据等变化的文档
+	/tmp:存放系统运行过程中使用的一些临时文件
+
+2.简述autofs服务
+	作用:autofs是一种看守程序,如果检测到用户正试图访问一个未挂载的文件系统,它就会自动检查
+	   该文件系统,如果存在,那么autofs就会自动将其挂载,另一方面,如果它检测到某个已经挂载的
+	   文件系统在一段时间内没有被使用,那么autofs会自动将其卸载
+
+3.简述RAID:
+	RAID0:条带模式,两个以上磁盘,同一个文档写入不同磁盘,并行写入,提高效率
+	RAID1:镜像模式,由至少两个磁盘组成,同一份文档分别写入不同磁盘中,每份磁盘数据一样
+	RAID5:分布式奇偶效验的独立磁盘模式,三块以上磁盘组成
+
+4.描述Linux系统启动过程:
+	加载bios,检查硬件信息
+	读取并执行第一个开机设备内MBR
+	运行grub引导加载kernel
+	内核启动/sbin/init程序
+	init系统初始化
+	确定默认的运行级别
+	触发runlevel事件,运行/etc/rc.d/rc
+	最后执行/etc/rc.d/rc.local
+	加载终端
+
+5.Linux常见的系统日志文件都有哪些,各自的用途?
+	/var/log/messages 内核及公共消息日志
+	/var/log/cron 计划任务日志
+	/var/log/dmesg 系统引导日志
+	/var/log/maillog 邮件系统日志
+	/var/log/secure 记录与访问限制相关日志
+
+6.常见的Linux开机设置文件
+	/etc/fstab 实现开机自动挂载设备的配置文件
+	/etc/initab  定义开机进入默认级别的配置文件
+	/etc/rc.local  定义开机自定义任务的配置文件
+	
+7.suid,sgid,sticky bit
+	suid   以属主的身份运行程序
+	sgid    在目录中创建的文件继承所在目录的属主
+	sticky bit   用户只能修改,删除自己的文件
+
+8.初学者在Linux系统的开机启动项如何选择:
+	crond  周期性计划任务
+	iptables  过滤防火墙
+	network   启动系统时,配置各个网络端口
+	sshd     远程连接时需要启动
+	sysstat    检查cpu使用率,硬盘和网络吞吐数据
+
+9描述Linux系统优化步骤:(12步)
+	登录系统:不使用root,通过sudo授权
+	禁止ssh远程:更改默认的ssh服务,禁用root的远程连接
+	时间同步:定期自动更新服务器时间
+	配置yum源:定期下载更新安装rpm包
+	关闭selinux及iptables(iptables工作场景有wan ip,一般要打开,高并发除外)
+	调整文件描述符数量(ulimit -Hn+ulimit -Sn命令,或者vim /etc/security/limits.conf)
+	定时自动清理/var/spool/clientmquene/目录垃圾文件
+	精简开启启动服务(crond,sshd,network.rsyslog)
+	linux内核参数优化/etc/sysctl.conf 执行sysct -p生效
+	锁定关键系统文件(chattr +i /etc/passwd /etc/shadow /etc/group /etc/gshadow /etc/inittab)
+	清空/etc/issue,去除系统及内核版本登录前的屏幕显示
+
+对linux系统进行分区:
+	300G单机服务器:/boot 100-200M
+		       swap 内存大小乘以2
+		       /      80G
+		       /var    20G
+		       /data   180G
+	lvs调度器:/boot
+		   swap
+		    
+	realserver服务器:/boot
+			    swap
+			
+	mysql服务器:/boot
+		     swap
+		       /
+			/data  
+	存储服务器:/boot
+		   swap
+		    /
+		    /data
+	共享存储服务器:/boot
+			swap
+			/
+			/data
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

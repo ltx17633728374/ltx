@@ -38,27 +38,3 @@
 	long-query-time                     #超时时间
 	long-queries-not-using-indexes      #记录未使用索引的查询
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

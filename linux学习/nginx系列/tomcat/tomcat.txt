@@ -1,0 +1,135 @@
+安装tomcat
+	yum -y install  java-1.8.0-openjdk java-1.8.0-openjdk-headless
+	tar -xf  apache-tomcat-9.0.6.tar.gz /usr/local/tomcat
+	/usr/local/tomcat/bin/startup.sh  #起服务
+	端口启动很慢时:
+	 mv /dev/random  /dev/random.bak
+	 ln -s /dev/urandom  /dev/random
+	创建测试界面:
+		vim  /usr/local/tomcat/webapps/ROOT/test.jsp
+		<html>
+		<body>
+		<center>
+		Now time is: <%=new java.util.Date()%>            //显示服务器当前时间
+		</center>
+		</body>
+		</html>
+	tomcat 虚拟主机
+	cat /usr/local/tomcat/conf/server.xml
+	<Server>
+   	<Service>
+     		<Connector port=8080 />
+     		<Connector port=8009 />
+     		<Engine name="Catalina" defaultHost="localhost">
+	<Host name="www.a.com" appBase="a" unpackWARS="true" autoDeploy="true">  #基于域名的
+	</Host>
+	<Host name="www.b.com" appBase="b" unpackWARS="true" autoDeploy="true">   #基于域名的
+	</Host>
+	....
+	vim /usr/loacl/tomcat/conf/server.xml
+	...
+	<Host name="www.a.com" appBase="a" unpackWARS="true" autoDeploy="true">
+	</Host>
+	<Host name="www.b.com" appBase="b" unpackWARS="true" autoDeploy="true">
+	</Host>
+	mkdir -p  /usr/local/tomcat/{a,b}/ROOT   #创建虚拟主机对应的页面根路径
+	echo "AAA"   > /usr/local/tomcat/a/ROOT/index.html
+	echo "BBB" > /usr/local/tomcat/b/ROOT/index.html
+ 	vim /usr/local/tomcat/conf/server.xml   #修改www.b.com的网站目录为base
+	… …
+	<Host name="www.a.com" appBase="a" unpackWARS="true" autoDeploy="true">
+	</Host>
+	<Host name="www.b.com" appBase="b" unpackWARS="true" autoDeploy="true">
+	<Context path="" docBase="base" reloadable="true"/>
+	</Host>
+	… …
+	vim /usr/local/tomcat/conf/server.xml   #配置网页跳转
+	<Host name="www.a.com" appBase="a" unpackWARS="true" autoDeploy="true">
+	<Context path="/test" docBase="/var/www/html/" />
+	</Host>
+	<Host name="www.b.com" appBase="b" unpackWARS="true" autoDeploy="true">
+	<Context path="" docBase="base" />
+	</Host>
+	… …
+加密网站:
+	keytool -genkeypair -alias tomcat -keyalg RSA -keystore /usr/local/tomcat/keystore           
+		   生成秘钥对		设置别名    定义RSA算法     定义秘钥文件存在 .....
+	创建支持加密链接的Connector
+	vim /usr/local/tomcat/conf/server.xml
+	… …
+	<Connector port="8443" protocol="org.apache.coyote.http11.Http11NioProtocol"
+	maxThreads="150" SSLEnabled="true" scheme="https" secure="true"
+	keystoreFile="/usr/local/tomcat/keystore" keystorePass="123456" clientAuth="false" 		sslProtocol="TLS" />
+配置Tomcat日志:
+	vim /usr/local/tomcat/conf/server.xml	
+	.. ..
+	<Host name="www.a.com" appBase="a" unpackWARS="true" autoDeploy="true">
+	<Context path="/test" docBase="/var/www/html/" />
+	#从默认localhost虚拟主机中把Valve这段复制过来，适当修改下即可
+	<Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
+               prefix=" a_access" suffix=".txt"
+               pattern="%h %l %u %t &quot;%r&quot; %s %b" />
+	</Host>
+	<Host name="www.b.com" appBase="b" unpackWARS="true" autoDeploy="true">
+	<Context path="" docBase="base" />
+	<Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
+               prefix=" b_access" suffix=".txt"
+               pattern="%h %l %u %t &quot;%r&quot; %s %b" />
+	</Host>
+	.. ..
+配置tomcat集群:
+	vim  /usr/local/nginx/conf/nginx.conf
+	
+	http{
+    	upstream toms {
+        	server 192.168.2.100:8080;
+        	server 192.168.2.200:8080;
+   	 }
+    	server  {
+        	listen 80;
+        	server_name localhost;
+        	location / {
+           	 proxy_pass  http://toms;
+      	  }
+   	 }
+	}  
+
+部署varnish缓存服务器:
+	yum -y install gcc readline-devel ncurses-devel pcre-devel python-docutils-0.11-0.2.20130715svn7687.el7.noarch.rpm
+	useradd -s /sbin/nologin varnish  
+	 tar -xf varnish-5.2.1.tar.gz
+	cd varnish-5.2.1
+	 ./configure
+	 make && make install
+启动脚本:
+	cp  /root/varnish-5.2.1/etc/example.vcl   /usr/local/etc/default.vcl
+配置文件:
+	vim  /usr/local/etc/default.vcl
+	backend default {
+     		.host = "192.168.2.100";
+     		.port = "80";
+	 }
+
+日志文件:
+	varnishlog
+	varnishncsa
+测试:
+	查看代理服务器,看到测试界面1,
+	删除web服务器的测试界面1,换成测试界面2,
+	再次查看代理服务器,依然可以看到测试界面1
+	使用varnishadm 
+	    varnish > ban req.url ~.*   #清空缓存数据
+
+
+
+
+
+
+
+
+
+
+
+
+
+

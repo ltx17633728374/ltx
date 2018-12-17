@@ -1,0 +1,126 @@
+mongodb副本集:
+	在多个服务器上存储数据副本,并实现数据同步,
+	提高数据可用性,安全性,方便数据故障恢复
+    工作过程:
+	至少两个节点,主节点负责处理客户端请求,其余是从节点,
+	负责复制主节点数据,常见的有一主一从,一主多从
+	主节点记录所有操作oplog,从节点定期轮询主节点获取这些操作,然后对
+	自己的数据副本执行这些操作,从而保证从节点的数据与主节点一致
+    实现方式:
+	主从复制:启动一台服务器时加上参数"-master"作主节点
+		启动其他服务器时加上"-slave" "-source"参数作为从节点
+		(从节点可以提供访问查询数据,降低压力,从节点执行备份,
+		避免主节点锁数据,主节点故障时,快速切换到从节点)
+	Replica Sets:从1.6开始,支持故障自动切换,自动修复成员
+	               节点,降低运维成本,结构类似与高可用集群
+
+创建mongodb副本集,三台主机安装mongodb,
+	mkdir /usr/local/mongodb
+	cd /usr/local/mongodb
+	cp -r /root/mongodb/mongodb-linux-86_64-rhel70-3.6.3/bin/
+	mkdir -p log etc data/db
+	vim etc/mongodb.conf
+		dbpath=/usr/local/mongodb/data/db/
+		logpath=/usr/local/mongodb/log/mongodb.log
+		logappend=true 
+		fork=true
+		bind_ip=192.168.4.51/52/53
+		port=27077
+		replSet=rs1   #加入副本级,三个机器名字都为rs1
+	在三台主机上启动服务
+	连接数据库:mongo --host 192.168.4.51 --port 27077
+	>rs1_config = {      #rs1_config变量名可以自取
+			_id:"rs1",
+			members:[
+				{_id:0,host:"192.168.4.51:27077"},
+				{_id:1,host:"192.168.4.52:27077"},
+				{_id:2,host:"192.168.4.53:27077"}
+				 ]};        #设置完成
+		
+	>rs.initiate(rs1_config)     #初始化环境
+	>rs.status()              #查看状态信息
+	>rs.isMaster()             #查看是否是master主库
+关闭主库:
+	mongod --dbpath=/usr/local/mongodb/data/db --shutdown
+		#指定目录,停止主库的服务
+	从库会自动变为主库,再次启动原来的主库时会变成现有主库的从库
+
+文档管理:
+	db.user.find({条件},{定义显示的字段})  #指定查询条件并指定显示的字段
+	db.user.find({},{name:1})     #显示每行的name字段
+	db.user.find({},{_id:0})      #不显示_id字段
+	db.user.find({},{_id:0,name:1})  #不看_id那一列,看name那一列
+	db.user.find({name:/^a/},{_id:0}) #查看a开头的name字段
+	db.user.find({name:/^a/},{_id:0}).limit(1)   #显示查询到的前一行
+	db.user.find({name:/^a/},{_id:0,name:1,shell:1,uid:1})   #查询name字段,以a开头的第一行
+	db.user.find({name:/^a/},{_id:0,name:1,shell:1}).skip(2)  #跳过两行显示
+	db.user.find({name:/^name/},{_id:0,name:1,shell:1,uid:1}).sort({uid:1})  #升序排序
+	db.user.find({name:/^name/},{_id:0,name:1,shell:1,uid:1}).sort({uid:-1}) #降序排序
+	db.user.find({name:/^a/,uid:3}{_id:0,name:1,shell:1,uid:1})  #显示name字段以a开头和uid为3的所有行
+     条件判断:
+	db.user.find({uid:{$in:[1,6,9]}})   #uid为1或者6或者9的匹配
+	db.user.find({uid:{$nin:[1,6,9]}},{_id:0,name:1,uid:1})  #匹配不是1,6,9的
+	db.user.find({$or:[{name:"root"},{uid:1}]},{_id:0,name:1,uid:1}) #满足任意条件几个
+	db.user.find({name:/^a/},{_id:0,name:1,uid:1})    #匹配以a开头的name字段
+	db.user.find({uid:{$gte:10,$lte:40}},{_id:0,name:1,uid:1})   #大于等于10,小于等于40的字段
+	#$lt(小于)$lte(小于等于)$gt(大于)$gte(大于等于)$ne(不等于)
+	db.user.save({name:null,uid:null})    #匹配null字段,可以检查字段是否存在
+  
+    save和insert的区别:
+	相同:集合不存在时创建集合,并插入记录
+	不同:save()_id字段值存在时,修改文档字段值,insert()_id字段已经存在时,放弃修改文档字段值
+	db.t1.save({_id:7,name:"tom",age:19})    #会强制修改已经存在的内容
+	db.t1.insert({_id:7,name:"tom",age:19})   #不能修改
+    
+     	db.t1.insertMany([{name:"a"},{name"b"}])     #插入多行
+	db.user.update({name:"root"},{password:"password"})   #修改字段内容,不写完整格式就会更改整行的内容
+	db.user.update({name:"adm"},{$set:{password:"password"}})  #修改指定字段的值(局部修改)
+	db.user.update({name:"sync"},{$unset:{password:1}})    #删除匹配到的字段
+	db.user.insert({name:"bob",like:["a","b","c","d","e","f",]})   #插入数组
+	db.user.update({name:"bob"},{$pop:{like:1}})     #删除匹配的第一条数据
+	db.user.update({name:"bob"},{$pop:{like:-1}})    #删除匹配的最后一条数据
+	db.user.update({name:"bob"},{$push:{like:"Z"}})    #默认添加到最后
+	db.user.update({name:"bob"},{$addToSet:{like:"W"}})  #避免重复添加(添加重复值不会写入)
+	db.user.update({name:"bob"},{$pull:{like:"c"}})   #删除数组里面指定的元素(bob里面的c)
+	db.user.update({uid:{$lte:10}},{$inc:{uid:2}})    #设置字段自加2,默认改第一行
+	db.user.update({uid:{$lte:10}},{$inc:{uid:2}},false,true) #设置字段值为2,false,true改全部
+	db.user.update({uid:{$lte:10}},{$inc:{uid:-1}})    #负数为自减1,默认改第一行
+	
+   remove(),drop()的区别:
+	remove()删除文档时不删除索引
+	drop()删除文档时删除索引
+	db.user.remove({name:"/^a/"})    #删除以a开头的记录
+	db.t1.drop()        #删除集合t1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

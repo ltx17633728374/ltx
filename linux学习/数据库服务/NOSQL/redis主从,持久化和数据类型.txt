@@ -1,0 +1,185 @@
+主从复制原理:
+	全量同步:(slave初始化)
+		slave发送sync命令
+		master接收sync命令,开始执行bgsave命令生成rdb文件,用缓冲区记录此后所有写命令
+		master执行bgsave命令完毕,向从服务器发送快照文件,并继续记录命令
+		slave收到快照,删除所有旧数据,写入收到的快照
+		master发送完快照,再发送缓冲区记录的命令
+		slave写入快照后,接收来自master缓冲区的命令
+	增量同步:(正常工作)
+		slave初始化之后,接收master的写命令
+	缺点:网络繁忙和系统繁忙时会产生数据同步延时问题
+
+配置主从复制:
+	redis-cli -c -h 192.168.4.51 -p 6379 shutdown   #关闭redis集群
+	更改配置文件,把集群配置注释vim /etc/redis/6379.conf
+		#cluster-enabled yes
+		#cluster-config-file nodes-6379.conf
+		#cluster-node-timeout 5000
+	redis-cli -h 192.168.4.51               #进入redis数据库
+	>info replication                        #查看主从配置(默认都为主)
+   从库配置:
+	redis-cli -h 192.168.4.52               #进入redis
+	>slaveof 192.168.4.51 6379              #指定本机为51的从库
+	>info replication                       #查看配置
+   反客为主:
+	redis-cli -h 192.168.4.51 shutdown     #关闭主库
+	redis-cli -h 192.168.4.52              #进入从库
+	>slaveof no one                        #手动设置主库
+	
+哨兵模式:(在从库设置)
+	vim /root/redis-4.0.8/sentinel.conf
+	  sentinel monitor mysql51 192.168.4.51 6379 1      #设置master地址,和票数
+	  sentinel down-after-milliseconds mysql51 60000    #判断服务器已经掉线的毫秒数
+	  sentinel failover-timeout mysql51 180000          #实现主从切换的最大时间
+	  sentinel parallel-syncs mysql51 1                 #执行故障转移时,最多多少服务器对进行同步
+
+主库设置密码,从库访问时的配置:
+	vim /etc/redis/6379.conf  (主库配置)
+	70行 bind 192.168.4.51
+	501行 requirepass 123456    #主库密码
+	
+	vim /etc/redis/6379.conf   (从库配置)
+	70行 bind 192.168.4.52
+	282行 slaveof 192.168.4.51 6379   #主库ip和端口
+	289行 masterauth 123456           #连接主库的密码
+
+redis持久化:(rdb和aof)
+   rdb:按时间间隔,将内存中的数据集快照(Snapshot快照)写入硬盘,恢复时将快照文件写入内存
+	vim /etc/redis/6379.conf
+	#save ""      #启动rdb,去掉注释是禁用
+	save 120 1    #120秒内发生一次变化就保存
+	save 300 10   #300秒内发生10此变化就保存
+	save 60 10000 #60秒内发生1万次变化会保存
+
+	save     #阻塞写存盘
+	bgsave   #不阻塞写存盘
+	rdbcompression yes/no   #压缩
+	rdbchecksum yes/no   #存储快照后,用crc16算法效验
+	stop-writes-on-bgsave-error yes/no   #bgsave出错时停止写操作
+	
+	数据恢复:redis-cli -h 192.168.4.51 shutdown	
+		cd /var/lib/redis/6379
+		cp dump.rdb dump.rdb.bak
+		rm -rf dump.rdb
+		#删除后,数据消失,把bak文件改名数据就可以恢复
+    
+   aof:使用日志还原数据的写操作
+	vim /etc/redis/6379.conf
+	appendonly yes            #启用aof，默认no
+	appendfilename "appendonly.aof"    #文件名
+	appendfsync everysec            #每秒记录一次
+	
+	数据恢复:cp appendonly.aof appendonly.aof.bak
+		rm -rf appendonly.aof
+		#删除后,数据消失,把bak文件改名数据就可以恢复
+
+	aof三种模式:
+		appendfsync always      #有新写入操作时记录
+		appendfsync everysec    #每秒记录一次
+		appendfsync no          #不记录
+aof和rdb:
+		
+	aof日志会不断增大,
+			auto-aof-rewrite-percentage 100   #上次重写之后的百分比
+			auto-aof-rewrite-min-size 64mb    #比上次文件的100%且文件大于64M会再次重新写入
+		aof日志损坏时,可以按最后一次操作恢复:
+			redis-check-aof --fix appendonly.aof
+		aof缺点:文件体积大于rdb,执行fsync策略速度比rdb慢
+	
+	rdb会丢失最后一次的同步数据,可以实现灾难恢复
+		性能最大化:只需要fork出子进程,避免进行IO操作	
+	
+string字符串:(redis数据库)
+	set v1 "hello world"      #定义v1的值
+	setrange v1 6 "redis"     #把v1的值从第六位开始,改为redis
+	strlen v1                 #统计v1长度
+	append v2 hehe            #把v2变量追加hehe字符,如果v2不存在则创建
+	setbit v3 0 1             #把v3变量的第一位数值给予1(被赋予的值可以0~2^32,但是赋予的值只能0,1)
+	setbit v3 1 0             #把v3变量的第二为数值给予0   
+	decr v4                   #把v4的值减一,v4不存在则创建,并把它值变为-1
+	decrby v4 2               #把v4的值减二
+	getrange v5 1 2           #截取v5变量中第二位到第三位的值(-1是倒数第一,-2是倒数第二)
+	incr v6                   #把v6的值自加1,v6不存在则创建
+	incrby v6 6               #把v6的值自加6
+	incrbyfloat v6 0.1        #把v6的值自加0.1
+	mset v1 1 v2 2 v3 3       #设置v1 v2 v3的值
+	mget v1 v2 v3             #获取v1 v2 v3的值
+
+list列表:
+	lpush L1 1 2 3            #L1的值为3 2 1 
+	lrange L1 0 2              #从0读到第二位
+	lrange L1 0 -1             #从开始读到结束
+	lpop L1                    #移除L1的第一个数据
+	llen L1                    #返回列表key长度
+	lindex L1 0                #返回列表中第一个值
+	lset L1 3 c                #把L1中第三个数值改为c
+	rpush L1 d                 #在L1的末尾插入d
+	rpop L1                    #删除并返回key末尾的值
+	
+hash表:
+	hset site google "www.google.com"       
+	#把表site的领域设置为google,值设置为www.google.com
+	hset site baidu "www.baidu.com"         
+	#往表site中添加一行,领域为baidu,值为www.baidu.com
+	hget site google    #查看google的值
+	hmset site google www.google.com www.baidu.com
+	#同时给领域google设置多个值
+	hmget site google baidu
+	#获取多个领域中的值
+	hkey site
+	#获取所有领域
+	hgetall site
+	#返回表中所有对应关系
+	hvals key
+	#返回表中所有key的值
+	hdel site google baidu
+	#删除多个领域
+
+redis也支持set,和zset数据类型
+	
+Set:无序集合，通过hash table实现，添加，删除，查找复杂度都是O(1)
+   命令：
+   sadd myset hello   向myset集合添加hello元素（不能重复，重复返回0）
+   smembers myset   查看myset集合中所有元素
+   srem  myset hello  删除myset中的hello元素
+   spop myset    从myset中随机删除一个元素
+   sdiff myset1 myset2   集合myset1和集合myset2的差集（1有而2没有的）
+   sdiffstore myset3 myset1 myset2   将myset1和myset2的差集存入myset3
+   sinter myset1 myset2   获取myset1和myset2的交集
+   sinterstore myset3 myset1 myset2  将myset1和myset2的交集存入myset3
+   sunion myset1 myset2 获取myset1和myset2的并集
+   sunionstore myset3 myset1 myset2 将myset1和myset2的并集存入myset3
+   smove myset1 myset2 jeyson   将jeyson元素从myset1移到myset2中
+   scard myset1  获取myset1中元素个数
+   sismember myset1 hello  测试hello是否是myset1的元素，是返回1 否则0
+   srandmember myset1   随机返回myset1一个元素，但不删除
+ZSet:有序集合，为Set的升级版本，增加了一个顺序属性
+   命令：
+  zadd myset 1 one   向myset集合添加顺序为1的元素one
+     更新顺序也是这个命令  zadd myset 2 one  把one的顺序号改为2
+  zrange myset 0 -1 withscores  获取集合中所有元素（带序号）
+  zrevrange myset 0 -1 withscores  获取集合中所有元素（带序号）(降序）
+  zrange myset 0 -1 获取集合中所有元素（不带序号）
+  zrem myset one 删除集合中one元素
+  zincrby myset 3 three  将three的顺序号增加3（如果没有three则创建three，顺序为3）
+  zrank myset one 返回one的索引（不是顺序，索引从0开始）（升序后）
+  zrevrank myset one 返回one的索引（从大到小）（降序后）
+  zrangebyscore myset 2 5 withscores 获取顺序为2-5的元素
+  zcount myset 2 5  返回集合中顺序在2-5的元素数量
+  zcard myset  返回集合中所有元素个数
+ zremrangebyrank  myset 2 5  删除指定索引区间内（2-5）的元素
+ zremrangebyscore  myset 2 5  删除指定顺序区间内（2-5）的元素
+
+
+
+
+
+
+
+
+
+
+
+
+

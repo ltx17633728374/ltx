@@ -92,7 +92,7 @@ keepalived + lvs 服务器综合:
  		}
 
 		systemctl start keepalived    #起服务
-		web2 的配置和web1基本一样,把优先级调低,设置为备用服务器即可
+		proxy1的配置和proxy2基本一样,把优先级调低,设置为备用服务器即可
 
 HAProxy负载平衡集群
 	web1,web2上不能有回环地址
@@ -147,41 +147,6 @@ global
 	Errors（错误请求、错误连接、错误回应）
 	Warnings（重新尝试警告retry、重新连接redispatches）
 	Server(状态、最后检查的时间（多久前执行的最后一次检查）、权重、备份服务器数量、down机服务器数量、down机时长)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
 
 
 
