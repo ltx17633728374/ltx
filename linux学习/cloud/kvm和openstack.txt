@@ -1,0 +1,287 @@
+新命令:chronyc sources -v     #显示时间同步是否成功
+	ps -efww              #显示所有进程的全部信息
+	grep -C 10 root     #上下显示10行
+		-B		  #向上显示10行
+		-A		#向下显示10行
+
+
+
+
+
+
+
+虚拟机:
+	底层支持:KVM:linux的内核模块,采用Intel-VT,AMD-V,Intel-EPT,AMD-RVI技术
+	QEMU虚拟化仿真工具,通过ioctl与内核kvm交互完成对硬件的虚拟化支持
+	Libvrit用户工具,可以让用户用程序去管理kvm
+用户软件:
+	qemu-kvm   #为kvm提供底层仿真支持
+	libvirt-daemon   #守护进程
+	libvrit-client   #用户端软件
+	libvrit-daemon-driver-qemu   #libvritd连接qemu的驱动
+功能:
+	virt-install    #系统安装工具
+	virt-manager    #图形管理工具
+	virt-v2v        #虚拟机迁移工具
+	virt-p2v        #物理机迁移工具
+启动服务:
+	systemctl start libvirtd
+
+虚拟机的文件:
+	/etc/libvirt/qemu/node.xml          #配置文件
+	/var/lib/libvirt/images/node.img    #镜像文件
+vrish命令:
+	virsh 控制命令 [虚拟机] 参数
+	virsh nodeinfo          #查看节点信息
+	virsh list [--all]      #列出虚拟机    
+	virsh net-list [--all]  #列出虚拟网络
+	virsh dominfo 虚拟机名     #查看指定虚拟机信息
+	virsh start/reboot/shutdown 虚拟机名    #重启关机
+	virsh destroy 虚拟机名     #强行关闭虚拟机
+	virsh autostart 虚拟机名   #开启自启虚拟机
+	virsh dumpxml 虚拟机名      #导出虚拟机配置文件
+	virsh dumpxml 虚拟机名 > 虚拟机名.xml    #备份虚拟机配置文件
+	virsh edit 虚拟机名                          #编辑虚拟机配置文件
+	virsh define node.xml                 #定义虚拟机
+	virsh undefine 虚拟机名			 #删除虚拟机
+qemu-img命令:(支持的格式:raw,qcow2,vdi,vmdk)
+	qemu-img 命令 参数 块文件名称 大小  
+	            -create     #创建磁盘
+			-convert    #转换磁盘格式
+			-info       #查看磁盘信息
+			-snapshot   #管理磁盘快照
+	qemu-img create -f qcow2 disk.img 50G     #创建最大50G的磁盘文件
+	qemu-img create -b node.img -f qcow2 disk.img 50G  #创建磁盘文件,指定后端盘为node.img
+管理虚拟机:
+	virsh connect qemu:///system #连接虚拟机
+	virsh connect qemu+ssh://root@IP:端口号/system #连接别人的虚拟机
+虚拟交换机的管理:
+	virsh net-list               #查看虚拟网络  
+		net-define vbr.xml     #创建虚拟交换机    
+		net-undefine vbr       #删除虚拟交换机    
+		net-start vbr          #启动虚拟交换机  
+		net-destory vbr        #停止虚拟交换机    
+		net-edit vbr           #修改虚拟交换机配置
+		net-autostart vbr      #虚拟交换机开机自启
+	rm -rf /etc/libvirt/qemu/networks/autostart  #停止自启虚拟机
+虚拟交换机的配置(可以连接外网):
+	在笔记文件下vbr.xml文件
+
+虚拟机配置文件解析:
+	<!-- -->          #注释
+	删除uuid,id,address,mac地址等个性化配置
+	<name>...</name>  #虚拟机名称
+	<memory unit="KiB">...</memory>  #虚拟机的最大内存
+	<currentmemory unit="KiB">...</currentMemory> #创建虚拟机使用内存 
+	<vcpu placement='static'>...</vcpu> #cpu的数量
+	<resource>...</resource> #资源设置,可以删除
+	<os>
+	   <boot dev='hd'/>
+	</os>  #系统配置引导文件
+	<features>..</features>   #电源配置
+	<cpu mode='host-passthrough'>..</cpu> #改为真机cpu
+	<clock>..</clock>    #时钟配置,可以删除
+	<on_poweroff>..</on_poweroff>  #关机
+  	<on_reboot>..</on_reboot>      #重启
+  	<on_crash>..</on_crash>        #强制关机
+	<pm>..</pm>               #内存及硬盘休眠设置,可以删除
+	<devices>..</devices>     #防止的相关配置
+	<seclabel>..<seclabel>    #驱动安全标签,可以删除
+	<address....>           #总线地址,可删
+	<alias.....>            #别名配置,可删
+	<controller type='usb'>    #usb相关配置,可删
+	type='pci'                 #pci总线,可删 
+	type='virtio-serial'       #串口设备需要保留串口终端
+	type='network'             #网络配置需要修改  
+	type='pty'                 #串口终端,需要保留   
+	type='unix'                #虚拟机通讯控制接口   
+	type='spicevmc'            #图形图形相关配置可以删除     
+	type='tablet'              #数位板,可以删除   
+	type='mouse'               #鼠标
+	type='keyboard'            #键盘    
+	graphics,video             #图形图像显卡,可删     
+	sound                      #声卡,可以删除
+	redirdev                   #设备重定向
+	memballoon                 #内存气泡,可以动态调整内存        
+
+guestmount离线访问工具
+	guestmount -a 虚拟磁盘路径 -i /挂载点    #把虚拟设备挂载到本地,来修改文件
+
+配置后端模板:(写个eip.sh脚本.让它能一键配ip)
+	用图型安装虚拟机,指定镜像文件,最小化安装,网络选择自己创建的虚拟交换机
+	装机后配置:
+		vim /etc/selinux/config
+		  SELINUX=disabled   #关闭selinux
+		yum -y remove NetworkManager-* firewalld-* python-firewall
+			#卸载防火墙和NetworkManager
+	
+		rpm --import ftp://192.168.1.254/centos7/RPM-GPG-KEY-CentOs-7    #导入公钥
+		yum -y install net-tools vim-enhanced bridge-utils psmisc
+			#安装软件,带tab自动补齐
+		
+		vim /etc/sysconfig/network-scripts/ifcfg-eth0
+		DEVICE="eth0"
+		ONBOOT="yes"
+		IPV6INIT="no"
+		TYPE="Ethernet"
+		BOOTPROTO ="dhcp"
+			#配置网卡	
+	
+		vim /etc/sysconfig/network
+			NOZEROCONF="yes"
+			#禁止空路由
+
+		vim /etc/default/grub
+		GRUB_CMDLINE_LINUX="biosdevname=0 net.ifnames=0 console=ttyS0,115200n8"
+		GRUB_DISABLE_LINUX_UUID="true"
+		GRUB_ENABLE_LINUX_LABEL="true"
+			#让主机能console进入虚拟机
+		grub2-mkconfig   -o  /boot/grub2/grub.cfg    #重新生成配置文件
+
+		yum  install  -y  cloud-utils-growpart  #安装扩展分区的软件
+		
+		vim /etc/chrony.conf
+		server 192.168.1.254 iburst           #配置时间同步服务器
+		vim /etc/chrony.conf(真机操作)
+		server ntp.aliyun.com iburst   #配置阿里云的时间同步服务器
+		26行 allow 0/0               #允许所有主机连接自己的时间同步服务器
+				
+		chmod 775 /ect		
+		vim /etc/rc.local 
+		/usr/bin/growpart /dev/vda 1
+		/usr/sbin/xfs_growfs /
+
+		virt-sysprep -d node    #关虚拟机后执行操作,清理虚拟机信息
+
+配置openstack主机:
+   创建虚拟机,qemu-img create -f qcow2 -b node.img openstack 50G
+		cp node.xml /etc/libvirt/qemu/openstack  #按标准配置删减
+		virsh define openstack.xml	
+	配置yum源(系统源的gpgcheck=1,配置完成后的包为10731个包)		
+	vim /etc/hosts
+		192.168.1.10 openstack
+		192.168.1.12 nova1
+	
+	yum -y install ntpdate-4.2.6p5-25.el7.centos.2.x86_64
+	ntpdate 192.168.1.254    #检查ntp时间服务器能不能用
+  真机操作:
+	qemu-img  create -f qcow2 disk.img 50G    #创建磁盘文件
+	virsh edit openstack(保证配置文件中,有两张磁盘,两张网卡) 
+		    <disk type='file' device='disk'>
+      		<driver name='qemu' type='qcow2'/>
+      		<source file='/var/lib/libvirt/images/node.img'/>
+     			<target dev='vda' bus='virtio'/>
+    		    </disk>
+    		    <disk type='file' device='disk'>
+      		<driver name='qemu' type='qcow2'/>
+      		<source file='/var/lib/libvirt/images/disk.img'/>
+      		<target dev='vdb' bus='virtio'/>
+    		    </disk>
+		    <interface type='bridge'>
+      		<source bridge='vbr'/>
+      		<model type='virtio'/>
+    		    </interface>
+		      <interface type='bridge'>
+      		<source bridge='private1'/>
+      		<model type='virtio'/>
+    		    </interface>
+  openstack虚拟机操作:
+	yum install lvm2 
+		pvcreate /dev/vdb 
+	      vgcreate cinder-volumes /dev/vdb    #安装时会用到的卷组,可以自己创建,也可以自动创建
+		vgs    #查看创建的卷组
+	cd /etc/sysconfig/network-scripts
+	cp ifcfg-eth0 ifcfg-eth1	
+	vim ifcfg-eth1
+	DEVICE="eth1"
+	ONBOOT="yes"
+	IPV6INIT="no"
+	IPV4_FAILURE_FATAL="no"
+	NM_CONTROLLED="no"
+	TYPE="Ethernet"
+	BOOTPROTO="none"
+	IPADDR="192.168.4.12
+	PREFIX=24
+	systemctl restart network
+	
+	yum install -y qemu-kvm libvirt-client libvirt-daemon \
+	>libvirt-daemon-driver-qemu python-setuptools 
+			#安装依赖
+	yum install -y openstack-packstack
+	packstack --gen-answer-file answer.ini  #生成应答文件
+	vim answer.ini
+ 	11 CONFIG_DEFAULT_PASSWORD=redhat  #密码
+  	42 CONFIG_SWIFT_INSTALL=n          #没有对象存储,选择n
+  	75 CONFIG_NTP_SERVERS=192.168.1.254   #时间服务器的地址
+ 	554 CONFIG_CINDER_VOLUMES_CREATE=n    #创建卷,已经手动创建过了
+ 	840 CONFIG_NEUTRON_ML2_TYPE_DRIVERS=flat,vxlan   #驱动类型
+ 	876 CONFIG_NEUTRON_ML2_VXLAN_GROUP=239.1.1.5  
+	#设置组播地址,最后一个随意不能为0和255,其他固定
+ 	910 CONFIG_NEUTRON_OVS_BRIDGE_MAPPINGS=physnet1:br-ex  #物理网桥的名称
+ 	921 CONFIG_NEUTRON_OVS_BRIDGE_IFACES=br-ex:eth0   
+	#br-ex桥的名称与eth0连接，管理eth0,网桥与哪个物理网卡连接
+ 	936 CONFIG_NEUTRON_OVS_TUNNEL_IF=eth1
+	1179 CONFIG_PROVISION_DEMO=n   #DEMO是否测试
+	packstack    --answer-file=answer.ini        #用packstack安装openstack
+
+验证OVS	
+	ovs-vsctl show
+
+配置Apache,让openstack可以正常访问:
+	vim /etc/httpd/conf.d/15-horizon_vhost.conf
+	35   WSGIProcessGroup apache
+      36   WSGIApplicationGroup %{GLOBAL}    #添加这一行
+	
+	apachectl  graceful     #重新载入配置文件
+
+	cat keystonerc_admin   #查看用户名,密码
+
+
+
+openstack组件解析:
+	Horizon
+		-管理Openstack各种服务,基于web的管理接口
+		-通过图形界面实现创建用户,管理网络,启动实例
+	Keystone
+		-为其他服务提供认证和授权的集中身份管理服务
+		-提供集中的目录服务
+		-支持多种身份认证模式,密码,令牌,已经AWS(亚马逊web服务)
+		-为用户和其他服务提供了SSO认证服务
+	Neutron
+		-一种软件定义网络服务
+		-用于创建网络,子网,路由器,管理浮动IP地址
+		-可以实现虚拟交换机,虚拟路由器
+		-用于在项目中创建VPN
+	Cinder
+		-为虚拟机管理存储卷的服务
+		-为运行在Nova中的实例提供永久的块存储
+		-可以通过快照进行数据备份
+		-经常应用在实例存储环境中,如数据库文件
+	Nova
+		-在节点上用于管理虚拟机的服务
+		-Nova是一个分布式的服务,能够与Keystone交互实现认证,与Glance交互实现镜像管理
+		-Nova被设计成在标准硬件能够进行水平扩展
+		-启动实例时,需要下载镜像
+	Glance
+		-扮演虚拟机镜像注册的角色
+		-允许用户为直接存储拷贝服务器镜像
+		-这些镜像可以用于新建虚拟机的模板
+
+添加nova节点(nova节点的配置,除了不装packstack,其他一样)
+	vim answer.ini  
+	CONFIG_COMPUTE_HOSTS=192.168.1.1,192.168.1.12
+	CONFIG_NETWORK_HOSTS=192.168.1.1,192.168.1.12
+	packstack --answer-file answer.ini   #重新安装openstack文件
+	vim /etc/httpd/conf.d/15-horizon_vhost.conf
+	35   WSGIProcessGroup apache
+      36   WSGIApplicationGroup %{GLOBAL}    #添加这一行
+	
+	apachectl  graceful     #重新载入配置文件
+
+	cat keystonerc_admin   #查看用户名,密码
+
+
+
+
+
+
