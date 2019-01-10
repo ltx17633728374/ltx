@@ -1,0 +1,77 @@
+ansible:
+	自动化部署app,自动化管理配置项,自动化持续交付,自动化(AWS)云服务管理
+
+ansible实现过程:
+	读取配置
+	抓取全量机器,分组列表:从多个静态文件,文件夹,脚本中读取机器,分组及其变关联量信息
+	使用host-pattern过滤机器列表
+	根据参数确定执行模块和配置:从modules目录动态读取,用户可以自行开发模块
+	runner执行,返回:
+		connection定义连接方式
+		action阶段:机器列表
+		lookup pluginaction:变量/文件等资源获取
+		gallback plugin:各个阶段插件运用
+	输出,结束:filter plugin的过滤算法
+安装ansible:
+	在https://www.centos.org/download/mirrors/官网选择一个镜像做yum源
+	ansible的软件在yum源的extras的文件夹下
+	做好yum源后安装即可:
+		yum -y install ansible
+	安装后验证:
+		ansible --version
+	修改/etc/hosts文件,添加集群的主机名和ip地址
+
+ansible配置:
+	vim /etc/ansible/ansible.cfg
+		incentory = /etc/ansible/hosts
+		[selinux]    #组名称,selinux的相关选项在这个下面配置
+		..
+		[colors]    #组名称,colors的相关选项在这个下面配置
+		...
+	
+	vim /etc/ansible/hosts
+		[web]     #web集群组,下面的名称是web真机的主机名
+		web1
+		web2
+		[db]     #数据库集群组,数据库1到数据库5
+		db[1:5]
+		[other]   #其他主机组
+		cache
+	
+	ansible web --list-host    #显示web集群的主机	
+	ansible all --list-host      #显示所有集群的主机
+	ansible web1 -m ping #测试是否可以连接,红色代表失败(未改配置时会失败)
+	
+	vim hosts
+		[web]
+		web1 ansible_ssh_user="root" ansible_ssh_pass="1"   #设置连接密码
+				#再次测试连接时不会报错
+	
+	vim /etc/ansible/hosts
+		[app:children]    #定义子组,web和db必须提前定义完成
+		web
+		db
+		
+		[app:vars]        #设置app组的密码
+		ansible_ssh_user="root"
+		ansible_ssh_pass="1"
+
+ansible的hosts文件可以自定义,在自定义文件的目录下执行ansible命令才能有效的执行自定义文件
+		
+	
+ansible的模块:
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+

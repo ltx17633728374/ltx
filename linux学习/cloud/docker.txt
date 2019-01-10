@@ -1,0 +1,144 @@
+docker技术:
+	安装docker:
+		yum -y install docker-engine-1.12.1-1.el7.centos.x86_64.rpm
+		yum -y install docker-engine-selinux-1.12.1-1.el7.centos.noarch.rpm
+	
+docker镜像命令:	
+	docker search 镜像名字
+	docker images #查看镜像
+	docker save busybox:latest > busybox.tar   #导出镜像
+	dcoker load < busybox.tar                  #导入镜像
+	docker rmi busybox                  #删除镜像
+	    导入镜像centos,nginx,redis,ubuntu
+	docker run -it centos /bin/bash 
+		#运行centos,用/bin/bash来进行交互
+	docker run -d nginx 
+		#后台运行nginx
+	docker history centos
+		#查看镜像制作过程
+	docker tag centos:latest myos:v1
+		#修改镜像标签
+	docker inspect centos
+		#查看镜像底层信息
+	
+docker容器命令
+	docker ps -a     
+		#查看所有容器
+	docker ps -aq 
+		#查看容器ID
+	docker stop qe
+		#停止那个以qe开头的容器
+	docker rm 4f
+		#删除那个以4f开头的容器
+	docker start qe
+		#开始以那个qe开头的容器
+	docker restart qe 
+		#重启那个以qe开头的容器
+	docker inspect qe
+		#查看以qe开头的容器底层信息
+	docker top
+		#查看容器进程列表
+	docker attach qe
+		#进入以qe开头的容器,exit会退出容器(退出按Ctrl+p+q)
+	docker exec -it qe /bin/bash
+		#进入以qe开头的容器,exit不会退出容器
+	
+自定义镜像
+	docker run -itd centos bash
+	docker exec -it qe /bin/bash
+		(进入容器后修改一系列配置)
+	docker commit qe myos:v1
+		(保存)	
+	
+    Dockerfile
+	-FROM:基础镜像
+	-MAINTAINER:镜像创建者信息
+	-EXPOSE:开放的端口
+	-ENV:设置变量
+	-ADD:复制文件到镜像
+	-RUN:制作镜像时执行的命令,可以有多个
+	-WORKDIR:定义容器默认工作目录
+	-CMD:容器启动时执行的命令,仅可以有一条CMD
+
+	vim Dockerfile
+	 FROM myos:v1
+	 MAINTAINER jacob redhat@qq.com
+	 RUN yum -y install httpd
+	 ENV EnvironmentFile=/etc/sysconfig/httpd   
+		#从/usr/lib/systemd/system/httpd.service查看
+	 WORKDIR /var/www/html/     #定义工作目录
+	 ADD test.sh /root/test.sh    #在当前文件夹需要有这个test.sh文件
+	 RUN echo "test" > /var/www/html/index.html
+	 EXPOSE 80
+	 CMD [ "/usr/sbin/httpd","-DFOREGROUND"]    
+		#从/usr/lib/systemd/system/httpd.service查看
+	mkdir build && cd build  #创建dockerfile所在目录
+	docker build -t myos:http .     
+		#按照dockerfile安装,最后一位是点
+	用dockerfile安装sshd服务时,需要根据报错路径查询相应的包
+
+创建私有镜像仓库:
+	vim /etc/docker/daemon.json    #配置文件
+	{
+	"insecure-registries": ["192.168.1.10:5000"]  #私有仓库运行容器	
+	}
+	
+	systemctl restart docker
+	docker run -d -p 5000:5000 registry      #运行私有仓库
+	curl 192.168.1.10:5000/v2/      #用这个访问会出现{}提示
+	docker tag busybox:latest 192.168.1.10:5000/busybox:latest  
+		#打标签
+	docker push 192.168.1.10:5000/busybox:latest 
+		#镜像上传到仓库
+   docker2操作:
+	docker run -it 192.168.1.10:5000/myos:http /bin/bash
+		#可以启动docker仓库里的myos镜像
+
+      curl  http://192.168.1.10:5000/v2/_catalog
+		#查看仓库里面的镜像
+	curl  http://192.168.1.10:5000/v2/busybox/tags/list 
+		#查看镜像的标签
+	
+NFS共享存储:
+	搭建一台NFS服务器,共享目录为/nfs,并且docker服务器挂载到本机的/nfs目录下
+	docker run  -d -p 80:80 -v /nfs:/var/www/html -it myos:http
+		#运行容器,并指定工作目录为/nfs,可以实现工作目录共享
+	
+docker自定义网桥:
+	docker network list     #显示docker的网桥
+	brctl show docker0     #启动容器会绑定docker0	
+	docker network create --subnet=172.30.0.0/16 docker01
+		#创建网桥docke01
+	docker network inspect docker01   #显示新建网桥的信息
+	docker run --network=docker01 -id nginx
+		#使用自定义网桥启动容器
+	docker  run  -p  8080:80  -id  nginx
+		#映射端口,把虚拟机的80映射到本机的8080
+	docker network create  \ 
+	>docker02  -o com.docker.network.bridge.name=docker02
+		#创建docker2网桥	
+	docker network create docker03 --subnet=172.30.0.0/16 \ 
+	>-o com.docker.network.bridge.name=docker03
+		#创建docker3时自定义网段
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
